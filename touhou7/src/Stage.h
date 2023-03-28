@@ -1,117 +1,19 @@
 #pragma once
 
-#include "Assets.h"
+#include "Objects.h"
 
 #include "xorshf96.h"
-
-#include <lua.hpp>
 
 #define PLAY_AREA_W 384
 #define PLAY_AREA_H 448
 
-#define TYPE_PART_SHIFT 28
-#define ID_PART_MASK 0x0FFF'FFFF
+namespace th {
 
-namespace th
-{
 	class Game;
 
 	class GameScene;
 
-	struct SpriteComponent
-	{
-		SpriteData* sprite;
-		float frame_index;
-		float angle;
-		float xscale = 1.0f;
-		float yscale = 1.0f;
-	};
-
-	enum class PlayerState : unsigned char {
-		Normal,
-		Dying,
-		Appearing
-	};
-
-	struct Player
-	{
-		unsigned int id;
-		bool dead;
-		float x;
-		float y;
-		float hsp;
-		float vsp;
-		float radius;
-		SpriteComponent sc;
-		PlayerState state;
-		bool focus;
-		float iframes;
-		float bomb_timer;
-		float hitbox_alpha;
-	};
-
-	struct Bullet
-	{
-		unsigned int id;
-		bool dead;
-		float x;
-		float y;
-		float spd;
-		float dir;
-		float acc;
-		float radius;
-		SpriteComponent sc;
-		float lifetime;
-		bool rotate;
-		int coroutine = LUA_REFNIL;
-		int update_callback = LUA_REFNIL;
-	};
-
-	struct Enemy
-	{
-		unsigned int id;
-		bool dead;
-		float x;
-		float y;
-		float spd;
-		float dir;
-		float acc;
-		SpriteComponent sc;
-		unsigned int drops;
-		int coroutine = LUA_REFNIL;
-		int update_callback = LUA_REFNIL;
-		int death_callback = LUA_REFNIL;
-	};
-
-	enum class BossState : unsigned char
-	{
-		Normal,
-		WaitingStart,
-		WaitingEnd
-	};
-
-	struct Boss
-	{
-		unsigned int id;
-		bool dead;
-		float x;
-		float y;
-		float spd;
-		float dir;
-		float acc;
-		float radius;
-		SpriteComponent sc;
-		float hp;
-		int type_index;
-		int phase_index;
-		float timer;
-		float wait_timer;
-		BossState state;
-		int coroutine = LUA_REFNIL;
-	};
-
-	class Stage
-	{
+	class Stage {
 	public:
 		Stage(Game& game, GameScene& scene) : game(game), scene(scene) {}
 
@@ -123,29 +25,33 @@ namespace th
 
 		Enemy& CreateEnemy();
 		Bullet& CreateBullet();
-		Player& CreatePlayer();
+		Player& CreatePlayer(bool from_death = false);
 		Boss& CreateBoss();
+		Pickup& CreatePickup(float x, float y, unsigned char type);
+		PlayerBullet& CreatePlayerBullet();
 
-		Enemy* FindEnemy(unsigned int id);
-		Bullet* FindBullet(unsigned int id);
-		Player* FindPlayer(unsigned int id);
-		Boss* FindBoss(unsigned int id);
+		Enemy* FindEnemy(instance_id id);
+		Bullet* FindBullet(instance_id id);
+		Player* FindPlayer(instance_id id);
+		Boss* FindBoss(instance_id id);
 
 		void FreeEnemy(Enemy& enemy);
 		void FreeBullet(Bullet& bullet);
-		void FreePlayer(Player& player);
-		void FreeBoss(Boss& boss);
+		void FreePlayer();
+		void FreeBoss();
 
 		float random_range(float a, float b);
 
-		void BossStartPhase(Boss& boss);
-		bool BossEndPhase(Boss& boss);
+		void StartBossPhase();
+		bool EndBossPhase();
 
-		Player player_storage{};
+		Player player{};
 		bool boss_exists = false;
-		Boss boss_storage{};
+		Boss boss{};
 		std::vector<Enemy> enemies;
 		std::vector<Bullet> bullets;
+		std::vector<Pickup> pickups;
+		std::vector<PlayerBullet> player_bullets;
 
 		xorshf96 rEngine;
 		lua_State* L = nullptr;
@@ -157,13 +63,15 @@ namespace th
 
 		void PhysicsUpdate(float delta);
 		void CallCoroutines();
-		void BossUpdate(Boss& boss, float delta);
+		void UpdateBoss(float delta);
 		void UpdateSpriteComponent(SpriteComponent& sc, float delta);
+		void UpdatePlayer(float delta);
 
-		unsigned int next_id = 0;
+		instance_id next_id = 0;
 
 		int coroutine = LUA_REFNIL;
 
 		float coro_update_timer = 0.0f;
 	};
+
 }

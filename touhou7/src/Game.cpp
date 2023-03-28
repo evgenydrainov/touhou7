@@ -1,21 +1,22 @@
 #include "Game.h"
 
 #include "common.h"
+#include "cpml.h"
 
 #include <SDL_image.h>
 
 #include <iostream>
 
-namespace th
-{
+namespace th {
+
 	StageData stage_data[STAGE_COUNT]{};
 	BulletData bullet_data[BULLET_TYPE_COUNT]{};
-	CharacterData char_data[CHARACTER_COUNT]{};
+	CharacterData character_data[CHARACTER_COUNT]{};
+	BossData boss_data[BOSS_TYPE_COUNT]{};
 
 	Game* Game::_instance = nullptr;
 
-	bool Game::Init()
-	{
+	bool Game::Init() {
 		if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 			TH_SHOW_ERROR("SDL_Init failed : %s", SDL_GetError());
 			return false;
@@ -47,7 +48,7 @@ namespace th
 
 		FillDataTables();
 
-		scene.Init();
+		next_scene = TITLE_SCENE;
 
 		//SDL_DisplayMode m;
 		//m.w = 1920;
@@ -59,9 +60,18 @@ namespace th
 		return true;
 	}
 
-	void Game::Shutdown()
-	{
-		scene.Quit();
+	void Game::Shutdown() {
+		static_assert(LAST_SCENE == 3);
+		switch (scene.index()) {
+			case GAME_SCENE: {
+				std::get<GAME_SCENE>(scene).Quit();
+				break;
+			}
+			case TITLE_SCENE: {
+				std::get<TITLE_SCENE>(scene).Quit();
+				break;
+			}
+		}
 
 		assets.UnloadAssets();
 
@@ -76,8 +86,7 @@ namespace th
 		SDL_Quit();
 	}
 
-	bool Game::Run()
-	{
+	bool Game::Run() {
 		double prev_time = (double)SDL_GetPerformanceCounter() / (double)SDL_GetPerformanceFrequency();
 
 		for (bool running = true; running;) {
@@ -88,6 +97,8 @@ namespace th
 			//std::cout << SDL_GetPerformanceCounter() << std::endl;
 			//std::cout << SDL_GetPerformanceFrequency() << std::endl;
 
+			memset(&key_pressed, 0, sizeof(key_pressed));
+
 			for (SDL_Event ev; SDL_PollEvent(&ev);) {
 				switch (ev.type) {
 					case SDL_QUIT: {
@@ -95,7 +106,13 @@ namespace th
 						break;
 					}
 					case SDL_KEYDOWN: {
-						if (ev.key.keysym.scancode == SDL_SCANCODE_F2) {
+						SDL_Scancode scancode = ev.key.keysym.scancode;
+
+						if (0 <= scancode && scancode < sizeof(key_pressed)) {
+							key_pressed[scancode] = true;
+						}
+
+						if (scancode == SDL_SCANCODE_F2) {
 							running = false;
 							restart = true;
 						}
@@ -132,14 +149,63 @@ namespace th
 		return true;
 	}
 
-	void Game::Update(float delta)
-	{
-		scene.Update(delta);
+	void Game::Update(float delta) {
+		static_assert(LAST_SCENE == 3);
+		switch (scene.index()) {
+			case GAME_SCENE: {
+				std::get<GAME_SCENE>(scene).Update(delta);
+				break;
+			}
+			case TITLE_SCENE: {
+				std::get<TITLE_SCENE>(scene).Update(delta);
+				break;
+			}
+		}
+
+		if (next_scene != 0) {
+			static_assert(LAST_SCENE == 3);
+			switch (scene.index()) {
+				case GAME_SCENE: {
+					std::get<GAME_SCENE>(scene).Quit();
+					break;
+				}
+				case TITLE_SCENE: {
+					std::get<TITLE_SCENE>(scene).Quit();
+					break;
+				}
+			}
+
+			int s = next_scene;
+			next_scene = 0;
+
+			static_assert(LAST_SCENE == 3);
+			switch (s) {
+				case GAME_SCENE: {
+					game_scene = &scene.emplace<GAME_SCENE>(*this);
+					game_scene->Init();
+					break;
+				}
+				case TITLE_SCENE: {
+					title_scene = &scene.emplace<TITLE_SCENE>(*this);
+					title_scene->Init();
+					break;
+				}
+			}
+		}
 	}
 
-	void Game::Draw(float delta)
-	{
-		scene.Draw(renderer, game_surface, delta);
+	void Game::Draw(float delta) {
+		static_assert(LAST_SCENE == 3);
+		switch (scene.index()) {
+			case GAME_SCENE: {
+				std::get<GAME_SCENE>(scene).Draw(renderer, game_surface, delta);
+				break;
+			}
+			case TITLE_SCENE: {
+				std::get<TITLE_SCENE>(scene).Draw(renderer, game_surface, delta);
+				break;
+			}
+		}
 
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
@@ -155,19 +221,25 @@ namespace th
 		SDL_RenderPresent(renderer);
 	}
 
-	void Game::FillDataTables()
-	{
-		char_data[CHARACTER_REIMU].name           = "Reimu Hakurei";
-		char_data[CHARACTER_REIMU].move_spd       = 3.75f;
-		char_data[CHARACTER_REIMU].focus_spd      = 1.6f;
-		char_data[CHARACTER_REIMU].radius         = 2.0f;
-		char_data[CHARACTER_REIMU].graze_radius   = 16.0f;
-		char_data[CHARACTER_REIMU].deathbomb_time = 15.0f;
-		char_data[CHARACTER_REIMU].starting_bombs = 2;
-		//char_data[CHARACTER_REIMU].shot_type      = reimu_shot_type;
-		//char_data[CHARACTER_REIMU].bomb           = reimu_bomb;
-		char_data[CHARACTER_REIMU].idle_spr       = assets.GetSprite("ReimuIdle");
-		char_data[CHARACTER_REIMU].turn_spr       = assets.GetSprite("ReimuTurn");
+	void ReimuShotType(Game* ctx, float delta);
+	void ReimuBomb(Game* ctx);
+
+	void Game::FillDataTables() {
+		static_assert(CHARACTER_COUNT == 1);
+
+		character_data[CHARACTER_REIMU].name           = "Reimu Hakurei";
+		character_data[CHARACTER_REIMU].move_spd       = 3.75f;
+		character_data[CHARACTER_REIMU].focus_spd      = 1.6f;
+		character_data[CHARACTER_REIMU].radius         = 2.0f;
+		character_data[CHARACTER_REIMU].graze_radius   = 16.0f;
+		character_data[CHARACTER_REIMU].deathbomb_time = 15.0f;
+		character_data[CHARACTER_REIMU].starting_bombs = 2;
+		character_data[CHARACTER_REIMU].shot_type      = ReimuShotType;
+		character_data[CHARACTER_REIMU].bomb           = ReimuBomb;
+		character_data[CHARACTER_REIMU].idle_spr       = assets.GetSprite("ReimuIdle");
+		character_data[CHARACTER_REIMU].turn_spr       = assets.GetSprite("ReimuTurn");
+
+		static_assert(BULLET_TYPE_COUNT == 7);
 
 		bullet_data[0].sprite = assets.GetSprite("Bullet0");
 		bullet_data[1].sprite = assets.GetSprite("Bullet1");
@@ -193,16 +265,107 @@ namespace th
 		bullet_data[5].rotate = true;
 		bullet_data[6].rotate = false;
 
+		static_assert(STAGE_COUNT == 1);
+
 		stage_data[0].script = "Stage1_Script";
 
-		stage_data[0].boss_data[1].name        = "Daiyousei";
-		stage_data[0].boss_data[1].phase_count = 1;
-		stage_data[0].boss_data[1].sprite      = assets.GetSprite("Daiyousei");
-		stage_data[0].boss_data[1].type        = BOSS_MIDBOSS;
+		static_assert(BOSS_TYPE_COUNT == 2);
 
-		stage_data[0].boss_data[1].phase_data[0].hp     = 1000.f;
-		stage_data[0].boss_data[1].phase_data[0].time   = 31.f * 60.f;
-		stage_data[0].boss_data[1].phase_data[0].type   = PHASE_NONSPELL;
-		stage_data[0].boss_data[1].phase_data[0].script = "Daiyousei_Nonspell1";
+		boss_data[0].name        = "Daiyousei";
+		boss_data[0].phase_count = 1;
+		boss_data[0].sprite      = assets.GetSprite("Daiyousei");
+		boss_data[0].type        = BOSS_MIDBOSS;
+
+		boss_data[0].phase_data[0].hp     = 1000.0f;
+		boss_data[0].phase_data[0].time   = 31.0f * 60.0f;
+		boss_data[0].phase_data[0].type   = PHASE_NONSPELL;
+		boss_data[0].phase_data[0].script = "Daiyousei_Nonspell1";
+
+		boss_data[1].name = "Cirno";
+		boss_data[1].phase_count = 5;
+		boss_data[1].sprite = assets.GetSprite("CirnoIdle");
+		boss_data[1].type = BOSS_BOSS;
+
+		boss_data[1].phase_data[0].hp     = 1500.0f;
+		boss_data[1].phase_data[0].time   = 25.0f * 60.0f;
+		boss_data[1].phase_data[0].type   = PHASE_NONSPELL;
+		boss_data[1].phase_data[0].script = "Cirno_Nonspell1";
+
+		boss_data[1].phase_data[1].hp     = 1500.0f;
+		boss_data[1].phase_data[1].time   = 30.0f * 60.0f;
+		boss_data[1].phase_data[1].type   = PHASE_SPELLCARD;
+		boss_data[1].phase_data[1].script = "Cirno_IcicleFall";
+		boss_data[1].phase_data[1].name   = "Ice Sign \"Icicle Fall\"";
+
+		boss_data[1].phase_data[2].hp     = 1500.0f;
+		boss_data[1].phase_data[2].time   = 50.0f * 60.0f;
+		boss_data[1].phase_data[2].type   = PHASE_NONSPELL;
+		boss_data[1].phase_data[2].script = "Cirno_Nonspell2";
+
+		boss_data[1].phase_data[3].hp     = 1500.0f;
+		boss_data[1].phase_data[3].time   = 40.0f * 60.0f;
+		boss_data[1].phase_data[3].type   = PHASE_SPELLCARD;
+		boss_data[1].phase_data[3].script = "Cirno_PerfectFreeze";
+		boss_data[1].phase_data[3].name   = "Freeze Sign \"Perfect Freeze\"";
+
+		boss_data[1].phase_data[4].hp     = 1500.0f;
+		boss_data[1].phase_data[4].time   = 33.0f * 60.0f;
+		boss_data[1].phase_data[4].type   = PHASE_SPELLCARD;
+		boss_data[1].phase_data[4].script = "Cirno_DiamondBlizzard";
+		boss_data[1].phase_data[4].name   = "Snow Sign \"Diamond Blizzard\"";
 	}
+
+	StageData* GetStageData(int stage_index) {
+		StageData* result;
+		if (0 <= stage_index && stage_index < STAGE_COUNT) {
+			result = &stage_data[stage_index];
+		} else {
+			result = &stage_data[0];
+		}
+		return result;
+	}
+
+	BulletData* GetBulletData(int type_index) {
+		BulletData* result;
+		if (0 <= type_index && type_index < BULLET_TYPE_COUNT) {
+			result = &bullet_data[type_index];
+		} else {
+			result = &bullet_data[0];
+		}
+		return result;
+	}
+
+	CharacterData* GetCharacterData(int character_index) {
+		CharacterData* result;
+		if (0 <= character_index && character_index < CHARACTER_COUNT) {
+			result = &character_data[character_index];
+		} else {
+			result = &character_data[0];
+		}
+		return result;
+	}
+
+	BossData* GetBossData(int type_index) {
+		BossData* result;
+		if (0 <= type_index && type_index < BOSS_TYPE_COUNT) {
+			result = &boss_data[type_index];
+		} else {
+			result = &boss_data[0];
+		}
+		return result;
+	}
+
+	PhaseData* GetPhaseData(BossData* boss_data, int phase_index) {
+		PhaseData* result;
+		if (!boss_data) {
+			boss_data = GetBossData(0);
+		}
+		if (0 <= phase_index && phase_index < boss_data->phase_count) {
+			result = &boss_data->phase_data[phase_index];
+		} else {
+			result = &boss_data->phase_data[0];
+		}
+		return result;
+	}
+
 }

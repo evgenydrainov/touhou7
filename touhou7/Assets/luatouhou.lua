@@ -136,3 +136,6 @@ function BulletTransformation(spd_from, spd_to, time)
 		SetSpd(id, spd_to);
 	end;
 end
+
+BOSS_DAIYOUSEI	= 0;
+BOSS_CIRNO		= 1;

@@ -175,7 +175,9 @@
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\GameScene.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\reimu.cpp" />
     <ClCompile Include="src\Stage.cpp" />
+    <ClCompile Include="src\TitleScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Assets.h" />
@@ -183,7 +185,9 @@
     <ClInclude Include="src\cpml.h" />
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\GameScene.h" />
+    <ClInclude Include="src\Objects.h" />
     <ClInclude Include="src\Stage.h" />
+    <ClInclude Include="src\TitleScene.h" />
     <ClInclude Include="src\xorshf96.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

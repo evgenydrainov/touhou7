@@ -10,19 +10,18 @@
 #include <fstream>
 #include <sstream>
 
-namespace th
-{
+namespace th {
+
 	static double AngleToSDL(float angle) {
 		return -(double)angle;
 	}
 
-	void DrawSprite(SDL_Renderer* renderer, const SpriteData* sprite, int frame_index, float x, float y, float angle, float xscale, float yscale, unsigned char r, unsigned char g, unsigned char b, unsigned char a)
-	{
+	void DrawSprite(SDL_Renderer* renderer, const SpriteData* sprite, int frame_index, float x, float y, float angle, float xscale, float yscale, SDL_Color color) {
 		if (!sprite) return;
 		if (!sprite->texture) return;
 
-		int u = sprite->x;
-		int v = sprite->y;
+		int u = sprite->u;
+		int v = sprite->v;
 		int w = sprite->width;
 		int h = sprite->height;
 		int xorigin = sprite->xorigin;
@@ -42,18 +41,22 @@ namespace th
 		src.h = h;
 
 		SDL_Rect dest;
-		dest.x = (int)x - xorigin;
-		dest.y = (int)y - yorigin;
-		dest.w = w;
-		dest.h = h;
+		dest.x = (int) (x - (float)xorigin * fabsf(xscale));
+		dest.y = (int) (y - (float)yorigin * fabsf(yscale));
+		dest.w = (int) ((float)w * fabsf(xscale));
+		dest.h = (int) ((float)h * fabsf(yscale));
 
 		int flip = SDL_FLIP_NONE;
 		if (xscale < 0.0f) flip |= SDL_FLIP_HORIZONTAL;
 		if (yscale < 0.0f) flip |= SDL_FLIP_VERTICAL;
 
-		SDL_SetTextureColorMod(sprite->texture, r, g, b);
-		SDL_SetTextureAlphaMod(sprite->texture, a);
-		SDL_RenderCopyEx(renderer, sprite->texture, &src, &dest, AngleToSDL(angle), 0, (SDL_RendererFlip)flip);
+		SDL_Point center;
+		center.x = (int) ((float)xorigin * fabsf(xscale));
+		center.y = (int) ((float)yorigin * fabsf(yscale));
+
+		SDL_SetTextureColorMod(sprite->texture, color.r, color.g, color.b);
+		SDL_SetTextureAlphaMod(sprite->texture, color.a);
+		SDL_RenderCopyEx(renderer, sprite->texture, &src, &dest, AngleToSDL(angle), &center, (SDL_RendererFlip)flip);
 	}
 
 	void DrawText(SDL_Renderer* renderer, const SpriteFont* font, const char* text, int x, int y) {
@@ -90,10 +93,22 @@ namespace th
 		}
 	}
 
-	bool Assets::LoadAssets()
-	{
+	bool Assets::LoadAssets() {
 		bool result = true;
 
+		// default texture & sprite
+		{
+			SDL_Surface* surface = SDL_CreateRGBSurface(0, 16, 16, 24, 0, 0, 0, 0);
+			SDL_FillRect(surface, nullptr, 0xFFFFFFFF);
+			default_texture = SDL_CreateTextureFromSurface(game.renderer, surface);
+			SDL_FreeSurface(surface);
+			textures["<default>"] = default_texture;
+
+			default_sprite = new SpriteData{default_texture, 0, 0, 16, 16, 0, 0, 1, 1, 0.0f, 0};
+			sprites["<default>"] = default_sprite;
+		}
+
+		// textures
 		{
 			std::ifstream texturesFile(assetsFolder + "AllTextures.txt");
 
@@ -109,6 +124,7 @@ namespace th
 			}
 		}
 
+		// sprites
 		{
 			std::ifstream spritesFile(assetsFolder + "AllSprites.txt");
 
@@ -121,8 +137,8 @@ namespace th
 
 				std::string name;
 				std::string spritesheet;
-				int x = 0;
-				int y = 0;
+				int u = 0;
+				int v = 0;
 				int width = 0;
 				int height = 0;
 				int xorigin = 0;
@@ -132,7 +148,7 @@ namespace th
 				float anim_spd = 0.0f;
 				int loop_frame = 0;
 
-				stream >> name >> spritesheet >> x >> y >> width >> height >> xorigin >> yorigin >> frame_count >> frames_in_row >> anim_spd >> loop_frame;
+				stream >> name >> spritesheet >> u >> v >> width >> height >> xorigin >> yorigin >> frame_count >> frames_in_row >> anim_spd >> loop_frame;
 
 				frame_count = (frame_count > 0) ? frame_count : 1;
 				frames_in_row = (frames_in_row > 0) ? frames_in_row : frame_count;
@@ -144,15 +160,16 @@ namespace th
 
 				SDL_Texture* texture = GetTexture(spritesheet);
 
-				SpriteData* sprite = new SpriteData{texture, x, y, width, height, xorigin, yorigin, frame_count, frames_in_row, anim_spd, loop_frame};
-
 				auto lookup = sprites.find(name);
 				if (lookup == sprites.end()) {
+					SpriteData* sprite = new SpriteData{texture, u, v, width, height, xorigin, yorigin, frame_count, frames_in_row, anim_spd, loop_frame};
+
 					sprites.emplace(name, sprite);
 				}
 			}
 		}
 
+		// lua scripts
 		{
 			std::ifstream scriptsFile(assetsFolder + "AllScripts.txt");
 
@@ -172,10 +189,11 @@ namespace th
 			}
 		}
 
+		// gui font (hard coded)
 		{
 			fntMain.texture = GetTexture("font.png");
 			fntMain.first = 16;
-			fntMain.width = 15;
+			fntMain.width = 15; // blasphemy
 			fntMain.height = 15;
 			fntMain.sep_x = 16;
 			fntMain.sep_y = 16;
@@ -185,8 +203,7 @@ namespace th
 		return result;
 	}
 
-	void Assets::UnloadAssets()
-	{
+	void Assets::UnloadAssets() {
 		for (auto it = sprites.begin(); it != sprites.end(); ++it) {
 			delete it->second;
 		}
@@ -198,46 +215,33 @@ namespace th
 		textures.clear();
 	}
 
-	SpriteData* Assets::GetSprite(const std::string& name) const
-	{
+	SpriteData* Assets::GetSprite(const std::string& name) const {
 		auto lookup = sprites.find(name);
 		if (lookup != sprites.end()) {
 			return lookup->second;
 		}
-		return nullptr;
+		return default_sprite;
 	}
 
-	SDL_Texture* Assets::GetTexture(const std::string& name) const
-	{
+	SDL_Texture* Assets::GetTexture(const std::string& name) const {
 		auto lookup = textures.find(name);
 		if (lookup != textures.end()) {
 			return lookup->second;
 		}
-		return nullptr;
+		return default_texture;
 	}
 
-	bool Assets::LoadTextureIfNotLoaded(const std::string& fname)
-	{
+	bool Assets::LoadTextureIfNotLoaded(const std::string& fname) {
 		auto lookup = textures.find(fname);
 		if (lookup == textures.end()) {
 			std::string fullPath = assetsFolder + fname;
 
-			SDL_Surface* surf;
-
-			if (!(surf = IMG_Load(fullPath.c_str()))) {
-				TH_LOG_ERROR("IMG_Load failed : %s", IMG_GetError());
-				return false;
-			}
-
 			SDL_Texture* texture;
 
-			if (!(texture = SDL_CreateTextureFromSurface(game.renderer, surf))) {
-				SDL_FreeSurface(surf);
-				TH_LOG_ERROR("SDL_CreateTextureFromSurface failed : %s", SDL_GetError());
+			if (!(texture = IMG_LoadTexture(game.renderer, fullPath.c_str()))) {
+				TH_LOG_ERROR("IMG_LoadTexture failed : %s", IMG_GetError());
 				return false;
 			}
-
-			SDL_FreeSurface(surf);
 
 			textures.emplace(fname, texture);
 		}
@@ -245,8 +249,7 @@ namespace th
 		return true;
 	}
 
-	bool Assets::LoadScriptIfNotLoaded(const std::string& fname)
-	{
+	bool Assets::LoadScriptIfNotLoaded(const std::string& fname) {
 		auto lookup = scripts.find(fname);
 		if (lookup == scripts.end()) {
 			std::string fullPath = assetsFolder + fname;
@@ -273,4 +276,5 @@ namespace th
 
 		return true;
 	}
+
 }

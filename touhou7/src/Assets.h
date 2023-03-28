@@ -5,15 +5,14 @@
 #include <unordered_map>
 #include <string>
 
-namespace th
-{
+namespace th {
+
 	class Game;
 
-	struct SpriteData
-	{
+	struct SpriteData {
 		SDL_Texture* texture;
-		int x;
-		int y;
+		int u;
+		int v;
 		int width;
 		int height;
 		int xorigin;
@@ -34,12 +33,11 @@ namespace th
 		int frames_in_row;
 	};
 
-	void DrawSprite(SDL_Renderer* renderer, const SpriteData* sprite, int frame_index, float x, float y, float angle, float xscale = 1.0f, float yscale = 1.0f, unsigned char r = 255, unsigned char g = 255, unsigned char b = 255, unsigned char a = 255);
+	void DrawSprite(SDL_Renderer* renderer, const SpriteData* sprite, int frame_index, float x, float y, float angle = 0.0f, float xscale = 1.0f, float yscale = 1.0f, SDL_Color color = {255, 255, 255, 255});
 
 	void DrawText(SDL_Renderer* renderer, const SpriteFont* font, const char* text, int x, int y);
 
-	class Assets
-	{
+	class Assets {
 	public:
 		Assets(Game& game) : game(game) {}
 
@@ -64,5 +62,9 @@ namespace th
 		std::unordered_map<std::string, SDL_Texture*> textures;
 		std::unordered_map<std::string, SpriteData*> sprites; // todo: just use SpriteData, they won't be moved in memory
 		std::unordered_map<std::string, std::vector<char>> scripts;
+
+		SDL_Texture* default_texture = nullptr;
+		SpriteData* default_sprite = nullptr;
 	};
+
 }

@@ -1,3 +1,6 @@
+local sprEnemy0 = FindSprite("Enemy0");
+local sprFairy0 = FindSprite("Fairy0");
+
 local spawn_spinner = function()
 	local Script = function(id)
 		wait(60);
@@ -34,11 +37,11 @@ local spawn_spinner = function()
 
 	local x = random(0, PLAY_AREA_W);
 	local y = 0;
-	CreateEnemy{x, y, 2, 270 + random(-30, 30), 0, "Enemy0", PICKUP_POINT|PICKUP_POWER, Script, OnDeath, OnUpdate};
+	CreateEnemy{x, y, 2, 270 + random(-30, 30), 0, sprEnemy0, PICKUP_POINT|PICKUP_POWER, Script, OnDeath, OnUpdate};
 end;
 
 function Stage1_Script(id)
-	print_table(_ENV);
+	-- print_table(_ENV);
 
 	wait(60);
 
@@ -70,7 +73,7 @@ function Stage1_Script(id)
 				local target = GetTarget(id);
 				local target_x = GetX(target);
 				local target_y = GetY(target);
-				CreateEnemy{x, y, 2, point_direction(x, y, target_x, target_y), 0, "Fairy0", PICKUP_POINT|PICKUP_POWER|PICKUP_NOTHING};
+				CreateEnemy{x, y, 2, point_direction(x, y, target_x, target_y), 0, sprFairy0, PICKUP_POINT|PICKUP_POWER|PICKUP_NOTHING};
 
 				if (i >= 12) then
 					spawn_spinner();
@@ -88,7 +91,7 @@ function Stage1_Script(id)
 	-- midboss part
 ::L_Midboss::
 	do
-		local dai = CreateBoss{type=1};
+		local dai = CreateBoss{type=BOSS_DAIYOUSEI};
 		while (Exists(dai)) do wait(1); end
 
 		wait(60);
@@ -97,11 +100,9 @@ function Stage1_Script(id)
 	-- boss part
 ::L_Boss::
 	do
-		CreateBoss{type=0};
+		CreateBoss{type=BOSS_CIRNO};
 	end
 end
-
-SKIP_TO_MIDBOSS=1
 
 function Daiyousei_Nonspell1(id)
 	local tp = function()
@@ -128,13 +129,13 @@ function Daiyousei_Nonspell1(id)
 				end
 				local spd = lerp(1.5, 3, i / n);
 				local a = lerp(1.1, 1.5, i / n);
-				-- Shoot{x, y, spd,     dir, 0, BULLET_KUNAI, color};
-				-- Shoot{x, y, spd * a, dir, 0, BULLET_KUNAI, color};
+				Shoot{x, y, spd,     dir, 0, BULLET_KUNAI, color};
+				Shoot{x, y, spd * a, dir, 0, BULLET_KUNAI, color};
 				-- Shoot{x, y, 0, dir, 0, BULLET_KUNAI, color, BulletTransformation(5, 1, 30)};
-				Shoot{x, y, 0, dir, 0, BULLET_KUNAI, color, function(id)
-					BulletTransformation(10, 2, 15)(id);
-					SetDir(id, TargetDir(id));
-				end};
+				-- Shoot{x, y, 0, dir, 0, BULLET_KUNAI, color, function(id)
+				-- 	BulletTransformation(10, 2, 15)(id);
+				-- 	SetDir(id, TargetDir(id));
+				-- end};
 				wait(1);
 			end
 

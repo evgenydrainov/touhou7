@@ -2,6 +2,6 @@
 
 ; scripts are executed in order provided
 
-ltouhou.lua
-lstage1.lua
-;lcirno.lua
+luatouhou.lua
+luastage1.lua
+luacirno.lua

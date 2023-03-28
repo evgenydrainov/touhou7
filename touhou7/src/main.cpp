@@ -4,24 +4,27 @@
 
 #include <iostream>
 
-extern "C"
-{
-	int __stdcall AllocConsole(void);
+#ifdef TH_RELEASE
+extern "C" int __stdcall AllocConsole(void);
 
-int main(int argc, char* argv[])
-{
+static void SpawnConsole() {
+	AllocConsole();
+	FILE* fDummy;
+	freopen_s(&fDummy, "CONOUT$", "w", stdout);
+	freopen_s(&fDummy, "CONOUT$", "w", stderr);
+	freopen_s(&fDummy, "CONIN$", "r", stdin);
+	std::cout.clear();
+	std::clog.clear();
+	std::cerr.clear();
+	std::cin.clear();
+}
+#endif
+
+extern "C" int main(int argc, char* argv[]) {
 #ifdef TH_RELEASE
 	if (argc > 1) {
 		if (strcmp(argv[1], "--console") == 0) {
-			AllocConsole();
-			FILE* fDummy;
-			freopen_s(&fDummy, "CONOUT$", "w", stdout);
-			freopen_s(&fDummy, "CONOUT$", "w", stderr);
-			freopen_s(&fDummy, "CONIN$", "r", stdin);
-			std::cout.clear();
-			std::clog.clear();
-			std::cerr.clear();
-			std::cin.clear();
+			SpawnConsole();
 		}
 	}
 #endif
@@ -41,6 +44,4 @@ int main(int argc, char* argv[])
 	}
 
 	return 0;
-}
-
 }

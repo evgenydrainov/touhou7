@@ -3,3 +3,5 @@
 Background.png
 Logo.png
 font.png
+CirnoSpellcardBG.png
+MistyLakeTexture.png
