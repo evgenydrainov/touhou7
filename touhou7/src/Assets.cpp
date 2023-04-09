@@ -209,7 +209,14 @@ namespace th {
 		// lua scripts
 
 		ReadTextFile(assetsFolder, "AllScripts.txt", [this, &result](const std::string& line) {
-			if (!LoadScriptIfNotLoaded(line)) {
+			std::istringstream stream(line);
+
+			std::string fname;
+			int stage_index = -1;
+
+			stream >> fname >> stage_index;
+
+			if (!LoadScriptIfNotLoaded(fname, stage_index)) {
 				result = false;
 				return;
 			}
@@ -256,6 +263,11 @@ namespace th {
 
 		TTF_CloseFont(fntCirno);
 		delete fntMain;
+
+		for (auto it = scripts.begin(); it != scripts.end(); ++it) {
+			delete it->second;
+		}
+		scripts.clear();
 
 		for (auto it = sprites.begin(); it != sprites.end(); ++it) {
 			delete it->second;
@@ -310,7 +322,7 @@ namespace th {
 		return true;
 	}
 
-	bool Assets::LoadScriptIfNotLoaded(const std::string& fname) {
+	bool Assets::LoadScriptIfNotLoaded(const std::string& fname, int stage_index) {
 		auto lookup = scripts.find(fname);
 		if (lookup == scripts.end()) {
 			std::string fullPath = assetsFolder + fname;
@@ -323,16 +335,18 @@ namespace th {
 
 			std::streamsize size = file.tellg();
 			if (size <= 0) {
-				TH_LOG_ERROR("script file %s size is %lld", fname.c_str(), size);
+				TH_LOG_ERROR("script file %s size is %d", fname.c_str(), (int)size);
 				return false;
 			}
 
 			file.seekg(0, std::ios::beg);
 
-			std::vector<char> buffer(size);
-			file.read(buffer.data(), size);
+			ScriptData* script = new ScriptData{};
+			script->buffer.resize((size_t)size);
+			file.read(script->buffer.data(), size);
+			script->stage_index = stage_index;
 
-			scripts.emplace(fname, buffer);
+			scripts.emplace(fname, script);
 		}
 
 		return true;

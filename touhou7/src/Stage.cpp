@@ -695,23 +695,31 @@ namespace th {
 			lua_setglobal(L, "SKIP_TO_BOSS");
 		}
 
-		auto& scripts = game.assets.GetScripts();
+		{
+			auto& scripts = game.assets.GetScripts();
 
-		for (auto script = scripts.begin(); script != scripts.end(); ++script) {
-			const char* buffer = script->second.data();
-			size_t buffer_size = script->second.size();
-			const char* debug_name = script->first.c_str();
+			for (auto it = scripts.begin(); it != scripts.end(); ++it) {
+				ScriptData* script = it->second;
 
-			if (luaL_loadbuffer(L, buffer, buffer_size, debug_name) != LUA_OK) {
-				TH_SHOW_ERROR("luaL_loadbuffer failed\n%s", lua_tostring(L, -1));
-				lua_settop(L, 0);
-				continue;
-			}
+				if (!(script->stage_index == scene.stage_index || script->stage_index == -1)) {
+					continue;
+				}
 
-			if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
-				TH_SHOW_ERROR("error while running script\n%s", lua_tostring(L, -1));
-				lua_settop(L, 0);
-				continue;
+				const char* buffer = script->buffer.data();
+				size_t buffer_size = script->buffer.size();
+				const char* debug_name = it->first.c_str();
+
+				if (luaL_loadbuffer(L, buffer, buffer_size, debug_name) != LUA_OK) {
+					TH_SHOW_ERROR("luaL_loadbuffer failed\n%s", lua_tostring(L, -1));
+					lua_settop(L, 0);
+					continue;
+				}
+
+				if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
+					TH_SHOW_ERROR("error while running script\n%s", lua_tostring(L, -1));
+					lua_settop(L, 0);
+					continue;
+				}
 			}
 		}
 
