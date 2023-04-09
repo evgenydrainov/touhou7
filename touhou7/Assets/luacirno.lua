@@ -18,7 +18,7 @@ end;
 function Cirno_Nonspell1(id)
 	local shoot_radial_bullets = function()
 		return ShootRadial(17, 360 / 17, function()
-			return Shoot{GetX(id), GetY(id), 3.5, TargetDir(id), 0, BULLET_OUT, 6};
+			return Shoot{GetX(id), GetY(id), 3.5, TargetDir(id), 0, BULLET_OUTLINE, 6};
 		end);
 	end;
 
@@ -103,7 +103,7 @@ function Cirno_IcicleFall(id)
 
 			if (i % 3 == 2) then
 				ShootRadial(5, 20, function()
-					return Shoot{GetX(id), GetY(id), 2, TargetDir(id), 0, BULLET_FILL, 13};
+					return Shoot{GetX(id), GetY(id), 2, TargetDir(id), 0, BULLET_FILLED, 13};
 				end);
 			end
 
@@ -120,7 +120,7 @@ function Cirno_Nonspell2(id)
 		for i = 1, 16 do
 			if (i % 2 == 0) then
 				ShootRadial(8, 360 / 8, function()
-					return Shoot{GetX(id), GetY(id), 4, TargetDir(id) + 360 / 8 / 2, 0, BULLET_OUT, 6};
+					return Shoot{GetX(id), GetY(id), 4, TargetDir(id) + 360 / 8 / 2, 0, BULLET_OUTLINE, 6};
 				end)
 			else
 				ShootRadial(8, 360 / 8, function()
@@ -152,7 +152,7 @@ function Cirno_PerfectFreeze(id)
 		for i = 1, 100 do
 			for i = 1, 2 do
 				local color = choose(2, 6, 10, 13, 14);
-				bullets[#bullets + 1] = Shoot{GetX(id), GetY(id), random(1, 4), random(360), 0, BULLET_OUT, color};
+				bullets[#bullets + 1] = Shoot{GetX(id), GetY(id), random(1, 4), random(360), 0, BULLET_OUTLINE, color};
 			end
 
 			wait(1);
@@ -172,7 +172,7 @@ function Cirno_PerfectFreeze(id)
 		for i = 1, 5 do
 			for i = 0, 4 do
 				ShootRadial(4, 30, function()
-					return Shoot{GetX(id), GetY(id), lerp(2, 6, i / 4), TargetDir(id), 0, BULLET_OUT, 6};
+					return Shoot{GetX(id), GetY(id), lerp(2, 6, i / 4), TargetDir(id), 0, BULLET_OUTLINE, 6};
 				end)
 			end
 

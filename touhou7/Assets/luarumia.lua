@@ -11,7 +11,7 @@ function Rumia_Nonspell1(id)
 
 		for j = 1, 7 do
 			Radial(10, 0, function(i)
-				return Shoot{GetX(id), GetY(id), lerp(1.5,5,i/9), TargetDir(id), 0, BULLET_FILL, 1+j%2}
+				return Shoot{GetX(id), GetY(id), lerp(1.5,5,i/9), TargetDir(id), 0, BULLET_FILLED, 1+j%2}
 			end)
 
 			wait(10)
@@ -34,7 +34,7 @@ function Rumia_Nonspell1(id)
 
 		-- blue
 		Radial(16, 360/16, function()
-			return Shoot{GetX(id), GetY(id), 2.5, TargetDir(id), 0, BULLET_OUT, 6}
+			return Shoot{GetX(id), GetY(id), 2.5, TargetDir(id), 0, BULLET_OUTLINE, 6}
 		end)
 
 		wait(200)
@@ -47,14 +47,14 @@ function Rumia_NightBird(id)
 			for i = 0, 15 do
 				local dir = TargetDir(id)
 				local off = 30
-				Shoot{GetX(id), GetY(id), lerp(1, 2.5, i/15), lerp(dir+90-off, dir-90-off, i/15), 0, BULLET_OUT, 6}
+				Shoot{GetX(id), GetY(id), lerp(1, 2.5, i/15), lerp(dir+90-off, dir-90-off, i/15), 0, BULLET_OUTLINE, 6}
 				wait(2)
 			end
 
 			for i = 0, 15 do
 				local dir = TargetDir(id) + 5
 				local off = 30
-				Shoot{GetX(id), GetY(id), lerp(1, 2.5, i/15), lerp(dir-90+off, dir+90+off, i/15), 0, BULLET_OUT, 8}
+				Shoot{GetX(id), GetY(id), lerp(1, 2.5, i/15), lerp(dir-90+off, dir+90+off, i/15), 0, BULLET_OUTLINE, 8}
 				wait(2)
 			end
 		end
