@@ -9,6 +9,13 @@
 
 namespace th {
 
+	enum ObjectType : unsigned char {
+		TYPE_BULLET,
+		TYPE_ENEMY,
+		TYPE_PLAYER,
+		TYPE_BOSS
+	};
+
 	typedef unsigned int instance_id;
 
 	struct SpriteComponent {

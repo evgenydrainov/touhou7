@@ -7,6 +7,12 @@
 #define PLAY_AREA_W 384
 #define PLAY_AREA_H 448
 
+#define BOSS_STARTING_X ((float)PLAY_AREA_W / 2.0f)
+#define BOSS_STARTING_Y 96.0f
+
+#define PLAYER_STARTING_X ((float)PLAY_AREA_W / 2.0f)
+#define PLAYER_STARTING_Y 384.0f
+
 namespace th {
 
 	class Game;
@@ -69,6 +75,7 @@ namespace th {
 		Game& game;
 		GameScene& scene;
 
+		void InitLua();
 		void PhysicsUpdate(float delta);
 		void CallCoroutines();
 		void UpdateBoss(float delta);

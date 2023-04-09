@@ -177,6 +177,7 @@
     <ClCompile Include="src\GameScene.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\reimu.cpp" />
+    <ClCompile Include="src\ScriptGlue.cpp" />
     <ClCompile Include="src\single_header.cpp" />
     <ClCompile Include="src\Stage.cpp" />
     <ClCompile Include="src\stage1bg_mode7.cpp" />
