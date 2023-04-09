@@ -6,8 +6,6 @@
 
 #include <SDL_image.h>
 
-#include <iostream>
-
 namespace th {
 
 	Game* Game::_instance = nullptr;
@@ -100,14 +98,6 @@ namespace th {
 		for (bool running = true; running;) {
 			double frame_end_time = (double)SDL_GetPerformanceCounter() / (double)SDL_GetPerformanceFrequency() + (1.0 / 60.0);
 
-			//std::cout.precision(17);
-			//std::cout << std::fixed << frame_end_time << std::endl;
-			//std::cout << SDL_GetPerformanceCounter() << std::endl;
-			//std::cout << SDL_GetPerformanceFrequency() << std::endl;
-
-			//std::cout << Mix_GetChunk(0) << std::endl;
-			//std::cout << Mix_Playing(0) << std::endl;
-
 			memset(&key_pressed, 0, sizeof(key_pressed));
 
 			skip_frame = frame_advance;
@@ -165,7 +155,6 @@ namespace th {
 
 			double current_time = (double)SDL_GetPerformanceCounter() / (double)SDL_GetPerformanceFrequency();
 			fps = 1.0 / (current_time - prev_time);
-			//std::cout << (current_time - prev_time) * 1000.0 << std::endl;
 			prev_time = current_time;
 
 			double time_left = frame_end_time - current_time;

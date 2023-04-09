@@ -7,8 +7,6 @@
 #include "cpml.h"
 #include "external/stb_sprintf.h"
 
-#include <iostream>
-
 #define BOSS_STARTING_X ((float)PLAY_AREA_W / 2.0f)
 #define BOSS_STARTING_Y 96.0f
 
@@ -1651,11 +1649,6 @@ namespace th {
 			}
 		}
 #endif
-
-		//std::cout << "hp " << boss.hp << std::endl;
-		//std::cout << "timer " << boss.timer << std::endl;
-		//std::cout << "wait timer " << boss.wait_timer << std::endl;
-		//std::cout << "phase " << boss.phase_index << std::endl;
 	}
 
 	template <typename Object>

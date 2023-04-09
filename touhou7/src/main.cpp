@@ -1,10 +1,8 @@
 #include "Game.h"
 
-//#include <Windows.h>
-
+#ifdef TH_RELEASE
 #include <iostream>
 
-#ifdef TH_RELEASE
 extern "C" int __stdcall AllocConsole(void);
 
 static void SpawnConsole() {
