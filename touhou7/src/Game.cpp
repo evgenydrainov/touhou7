@@ -275,11 +275,13 @@ namespace th {
 			//SDL_SetWindowDisplayMode(window, &m);
 			SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
 			SDL_ShowCursor(SDL_DISABLE);
+			fullscreen = true;
 		} else {
 			SDL_SetWindowSize(window, GAME_W * (window_mode + 1), GAME_H * (window_mode + 1));
 			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 			SDL_SetWindowFullscreen(window, 0);
 			SDL_ShowCursor(SDL_ENABLE);
+			fullscreen = false;
 		}
 	}
 

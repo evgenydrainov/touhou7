@@ -72,6 +72,7 @@ namespace th {
 
 		bool frame_advance = false;
 		bool skip_frame = false;
+		bool fullscreen = false;
 
 	private:
 		static Game* _instance;

@@ -10,9 +10,10 @@
 
 #define TH_SHOW_ERROR(fmt, ...)																\
 	do {																					\
-		bool fullscreen = false;															\
+		bool fullscreen = Game::GetInstance().fullscreen;									\
 		if (fullscreen) {																	\
-			TH_LOG_ERROR(fmt, __VA_ARGS__);													\
+			printf("ERROR\n");																\
+			TH_LOG_ERROR(fmt "\n", __VA_ARGS__);											\
 		} else {																			\
 			char* buf = new char[1000];														\
 			stbsp_snprintf(buf, 1000, __FILE__ ":" TH_LINE_STRING ": " fmt, __VA_ARGS__);	\
