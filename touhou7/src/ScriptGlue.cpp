@@ -135,13 +135,13 @@ namespace th {
 	// @main_thread
 	int CreateCoroutine(lua_State* L, lua_State* main_L) {
 		if (lua_gettop(L) < 1) {
-			TH_LOG_ERROR("CreateCoroutine: the stack is empty");
+			TH_LOG_ERROR("CreateCoroutine: stack is empty");
 			return LUA_REFNIL;
 		}
 
 		if (!lua_isfunction(L, -1)) {
+			TH_LOG_ERROR("CreateCoroutine: not a function");
 			lua_pop(L, 1);
-			TH_LOG_ERROR("CreateCoroutine: the thing on the stack is not a function");
 			return LUA_REFNIL;
 		}
 
@@ -728,7 +728,7 @@ namespace th {
 		lua_pushinteger(L, id);
 		int res = lua_pcall(L, 1, 0, 0);
 		if (res != LUA_OK) {
-			TH_LOG_ERROR("CallLuaFunction: %s", lua_tostring(L, -1));
+			TH_LOG_ERROR("CallLuaFunction:\n%s", lua_tostring(L, -1));
 			lua_pop(L, 1);
 			return false;
 		}
@@ -743,7 +743,7 @@ namespace th {
 
 		lua_rawgeti(L, LUA_REGISTRYINDEX, *coroutine);
 		if (!lua_isthread(L, -1)) {
-			TH_SHOW_ERROR("coroutine ref is not a thread");
+			TH_SHOW_ERROR("UpdateCoroutine: not a thread");
 			lua_settop(L, 0);
 			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
 			*coroutine = LUA_REFNIL;
@@ -767,7 +767,7 @@ namespace th {
 			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
 			*coroutine = LUA_REFNIL;
 		} else if (res != LUA_YIELD) {
-			TH_SHOW_ERROR("error while running stage coroutine\n%s", lua_tostring(NL, -1));
+			TH_SHOW_ERROR("UpdateCoroutine:\n%s", lua_tostring(NL, -1));
 			lua_settop(NL, 0);
 			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
 			*coroutine = LUA_REFNIL;
