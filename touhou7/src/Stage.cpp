@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "cpml.h"
+#include "external/stb_sprintf.h"
 
 #include <iostream>
 
@@ -59,7 +60,7 @@ namespace th {
 		}
 
 		Game* ctx = lua_getcontext(L);
-		float r = ctx->game_scene->stage.random_range(a, b);
+		float r = ctx->game_scene->stage->random.range(a, b);
 		lua_pushnumber(L, (lua_Number) r);
 
 		return 1;
@@ -149,11 +150,16 @@ namespace th {
 		return res;
 	}
 
+	// @main_thread
 	static int CreateCoroutine(lua_State* L, lua_State* main_L) {
-		if (lua_gettop(L) < 1) return LUA_REFNIL;
+		if (lua_gettop(L) < 1) {
+			TH_LOG_ERROR("CreateCoroutine: the stack is empty");
+			return LUA_REFNIL;
+		}
 
 		if (!lua_isfunction(L, -1)) {
 			lua_pop(L, 1);
+			TH_LOG_ERROR("CreateCoroutine: the thing on the stack is not a function");
 			return LUA_REFNIL;
 		}
 
@@ -189,7 +195,7 @@ namespace th {
 
 		int coroutine = LUA_REFNIL;
 		if (lua_named_argfunc(L, argc, 8, "Script")) {
-			coroutine = CreateCoroutine(L, ctx->game_scene->stage.L); // it's possible to get the main thread without context
+			coroutine = CreateCoroutine(L, ctx->game_scene->stage->L); // @main_thread
 		}
 
 		int death_callback = LUA_REFNIL;
@@ -202,7 +208,7 @@ namespace th {
 			update_callback = luaL_ref(L, LUA_REGISTRYINDEX);
 		}
 
-		Enemy& enemy = ctx->game_scene->stage.CreateEnemy();
+		Enemy& enemy = ctx->game_scene->stage->CreateEnemy();
 		enemy.x = x;
 		enemy.y = y;
 		enemy.spd = spd;
@@ -233,7 +239,7 @@ namespace th {
 
 		BossData* data = GetBossData(type);
 
-		Boss& boss = ctx->game_scene->stage.CreateBoss();
+		Boss& boss = ctx->game_scene->stage->CreateBoss();
 		boss.x = x;
 		boss.y = y;
 		boss.spd = spd;
@@ -243,7 +249,7 @@ namespace th {
 		boss.sc.sprite = data->sprite;
 		boss.type_index = type;
 
-		ctx->game_scene->stage.StartBossPhase();
+		ctx->game_scene->stage->StartBossPhase();
 
 		lua_pushinteger(L, boss.id);
 		return 1;
@@ -264,12 +270,12 @@ namespace th {
 
 		int coroutine = LUA_REFNIL;
 		if (lua_named_argfunc(L, argc, 8, "Script")) {
-			coroutine = CreateCoroutine(L, ctx->game_scene->stage.L); // @main_thread_without_context
+			coroutine = CreateCoroutine(L, ctx->game_scene->stage->L); // @main_thread
 		}
 
 		BulletData* data = GetBulletData(type);
 
-		Bullet& bullet = ctx->game_scene->stage.CreateBullet();
+		Bullet& bullet = ctx->game_scene->stage->CreateBullet();
 		bullet.x = x;
 		bullet.y = y;
 		bullet.spd = spd;
@@ -283,6 +289,11 @@ namespace th {
 		bullet.sc.sprite = data->sprite;
 		bullet.sc.frame_index = (float)color;
 		bullet.coroutine = coroutine;
+
+		Mix_Chunk* sound = ctx->assets.GetSound("se_enemy_shoot.wav");
+		StopSound(sound);
+		Mix_PlayChannel(-1, sound, 0);
+
 		lua_pushinteger(L, bullet.id);
 		return 1;
 	}
@@ -302,14 +313,14 @@ namespace th {
 
 		int coroutine = LUA_REFNIL;
 		if (lua_named_argfunc(L, argc, 8, "Script")) {
-			coroutine = CreateCoroutine(L, ctx->game_scene->stage.L); // @main_thread_without_context
+			coroutine = CreateCoroutine(L, ctx->game_scene->stage->L); // @main_thread
 		}
 
 		if (spd == 0.0f) spd = 1.0f;
 		if (length == 0.0f) length = 1.0f;
 		float time = length / spd;
 
-		Bullet& bullet = ctx->game_scene->stage.CreateBullet();
+		Bullet& bullet = ctx->game_scene->stage->CreateBullet();
 		bullet.x = x;
 		bullet.y = y;
 		bullet.spd = spd;
@@ -323,6 +334,49 @@ namespace th {
 		bullet.sc.sprite = ctx->assets.GetSprite("Lazer");
 		bullet.sc.frame_index = (float)color;
 		bullet.coroutine = coroutine;
+
+		Mix_Chunk* sound = ctx->assets.GetSound("se_lazer.wav");
+		StopSound(sound);
+		Mix_PlayChannel(-1, sound, 0);
+
+		lua_pushinteger(L, bullet.id);
+		return 1;
+	}
+
+	static int lua_ShootSLazer(lua_State* L) {
+		int argc = lua_getargc(L);
+
+		int i = 1;
+		float x   = lua_named_argf(L, argc, i++, "x");
+		float y   = lua_named_argf(L, argc, i++, "y");
+		float dir = lua_named_argf(L, argc, i++, "dir");
+		float prep_time = lua_named_argf(L, argc, i++, "prep_time");
+		float time = lua_named_argf(L, argc, i++, "time");
+		float thickness = lua_named_argf(L, argc, i++, "thickness");
+		int color = lua_named_argi(L, argc, i++, "color");
+
+		Game* ctx = lua_getcontext(L);
+
+		int coroutine = LUA_REFNIL;
+		if (lua_named_argfunc(L, argc, i++, "Script")) {
+			coroutine = CreateCoroutine(L, ctx->game_scene->stage->L); // @main_thread
+		}
+
+		Bullet& bullet = ctx->game_scene->stage->CreateBullet();
+		bullet.x = x;
+		bullet.y = y;
+		bullet.dir = cpml::angle_wrap(dir);
+
+		bullet.type = ProjectileType::SLazer;
+		bullet.target_length = 1'000.0f;
+		bullet.thickness = thickness;
+		bullet.lazer_time = prep_time;
+		bullet.lazer_lifetime = prep_time + time;
+
+		bullet.sc.sprite = ctx->assets.GetSprite("Lazer");
+		bullet.sc.frame_index = (float)color;
+		bullet.coroutine = coroutine;
+
 		lua_pushinteger(L, bullet.id);
 		return 1;
 	}
@@ -354,25 +408,25 @@ namespace th {
 		T value{};
 		switch (type) {
 			case TYPE_BULLET: {
-				if (Bullet* bullet = ctx->game_scene->stage.FindBullet(id)) {
+				if (Bullet* bullet = ctx->game_scene->stage->FindBullet(id)) {
 					if (GetFromBullet != nullptr) value = GetFromBullet(bullet);
 				}
 				break;
 			}
 			case TYPE_ENEMY: {
-				if (Enemy* enemy = ctx->game_scene->stage.FindEnemy(id)) {
+				if (Enemy* enemy = ctx->game_scene->stage->FindEnemy(id)) {
 					if (GetFromEnemy != nullptr) value = GetFromEnemy(enemy);
 				}
 				break;
 			}
 			case TYPE_PLAYER: {
-				if (Player* player = ctx->game_scene->stage.FindPlayer(id)) {
+				if (Player* player = ctx->game_scene->stage->FindPlayer(id)) {
 					if (GetFromPlayer != nullptr) value = GetFromPlayer(player);
 				}
 				break;
 			}
 			case TYPE_BOSS: {
-				if (Boss* boss = ctx->game_scene->stage.FindBoss(id)) {
+				if (Boss* boss = ctx->game_scene->stage->FindBoss(id)) {
 					if (GetFromBoss != nullptr) value = GetFromBoss(boss);
 				}
 				break;
@@ -403,25 +457,25 @@ namespace th {
 		Game* ctx = lua_getcontext(L);
 		switch (type) {
 			case TYPE_BULLET: {
-				if (Bullet* bullet = ctx->game_scene->stage.FindBullet(id)) {
+				if (Bullet* bullet = ctx->game_scene->stage->FindBullet(id)) {
 					if (BulletSet != nullptr) BulletSet(bullet, value);
 				}
 				break;
 			}
 			case TYPE_ENEMY: {
-				if (Enemy* enemy = ctx->game_scene->stage.FindEnemy(id)) {
+				if (Enemy* enemy = ctx->game_scene->stage->FindEnemy(id)) {
 					if (EnemySet != nullptr) EnemySet(enemy, value);
 				}
 				break;
 			}
 			case TYPE_PLAYER: {
-				if (Player* player = ctx->game_scene->stage.FindPlayer(id)) {
+				if (Player* player = ctx->game_scene->stage->FindPlayer(id)) {
 					if (PlayerSet != nullptr) PlayerSet(player, value);
 				}
 				break;
 			}
 			case TYPE_BOSS: {
-				if (Boss* boss = ctx->game_scene->stage.FindBoss(id)) {
+				if (Boss* boss = ctx->game_scene->stage->FindBoss(id)) {
 					if (BossSet != nullptr) BossSet(boss, value);
 				}
 				break;
@@ -439,24 +493,59 @@ namespace th {
 		bool result = false;
 		switch (type) {
 			case TYPE_BULLET: {
-				result = ctx->game_scene->stage.FindBullet(id);
+				result = ctx->game_scene->stage->FindBullet(id);
 				break;
 			}
 			case TYPE_ENEMY: {
-				result = ctx->game_scene->stage.FindEnemy(id);
+				result = ctx->game_scene->stage->FindEnemy(id);
 				break;
 			}
 			case TYPE_PLAYER: {
-				result = ctx->game_scene->stage.FindPlayer(id);
+				result = ctx->game_scene->stage->FindPlayer(id);
 				break;
 			}
 			case TYPE_BOSS: {
-				result = ctx->game_scene->stage.FindBoss(id);
+				result = ctx->game_scene->stage->FindBoss(id);
 				break;
 			}
 		}
 		lua_pushboolean(L, result);
 		return 1;
+	}
+
+	static int lua_Destroy(lua_State* L) {
+		lua_checkargc(L, 1, 1);
+		instance_id id = (instance_id)luaL_checkinteger(L, 1);
+		unsigned char type = id >> TYPE_PART_SHIFT;
+
+		Game* ctx = lua_getcontext(L);
+		switch (type) {
+			case TYPE_BULLET: {
+				if (Bullet* bullet = ctx->game_scene->stage->FindBullet(id)) {
+					bullet->dead = true;
+				}
+				break;
+			}
+			case TYPE_ENEMY: {
+				if (Enemy* enemy = ctx->game_scene->stage->FindEnemy(id)) {
+					enemy->dead = true;
+				}
+				break;
+			}
+			case TYPE_PLAYER: {
+				if (Player* player = ctx->game_scene->stage->FindPlayer(id)) {
+					player->dead = true;
+				}
+				break;
+			}
+			case TYPE_BOSS: {
+				if (Boss* boss = ctx->game_scene->stage->FindBoss(id)) {
+					boss->dead = true;
+				}
+				break;
+			}
+		}
+		return 0;
 	}
 
 	static void _lua_register(lua_State* L, const char* name, lua_CFunction func) {
@@ -496,6 +585,9 @@ namespace th {
 	static void* GetSprFromObject(Object* object) { return object->sc.sprite; }
 	template <typename Object>
 	static float GetImgFromObject(Object* object) { return object->sc.frame_index; }
+	template <typename Object>
+	static float GetAngleFromObject(Object* object) { return object->angle; }
+
 
 	template <typename Object>
 	static void SetXForObject(Object* object, float value) { object->x = value; }
@@ -516,6 +608,8 @@ namespace th {
 	static void SetSprForObject(Object* object, void* value) { object->sc.sprite = (SpriteData*)value; }
 	template <typename Object>
 	static void SetImgForObject(Object* object, float value) { object->sc.frame_index = value; }
+	template <typename Object>
+	static void SetAngleForObject(Object* object, float value) { object->angle = value; }
 
 	bool Stage::Init() {
 		if (!(L = luaL_newstate())) {
@@ -552,8 +646,10 @@ namespace th {
 			lua_register(L, "CreateBoss", lua_CreateBoss);
 			lua_register(L, "Shoot", lua_Shoot);
 			lua_register(L, "ShootLazer", lua_ShootLazer);
+			lua_register(L, "ShootSLazer", lua_ShootSLazer);
 			lua_register(L, "Exists", lua_Exists);
 			lua_register(L, "FindSprite", lua_FindSprite);
+			lua_register(L, "Destroy", lua_Destroy);
 
 			lua_CFunction GetX = lua_GetObjectVar<float, ObjectVarPushFloat, GetXFromObject<Bullet>, GetXFromObject<Enemy>, GetXFromObject<Player>, GetXFromObject<Boss>>;
 			lua_CFunction GetY = lua_GetObjectVar<float, ObjectVarPushFloat, GetYFromObject<Bullet>, GetYFromObject<Enemy>, GetYFromObject<Player>, GetYFromObject<Boss>>;
@@ -563,6 +659,7 @@ namespace th {
 			lua_CFunction GetTarget = lua_GetObjectVar<instance_id, ObjectVarPushID, GetTargetFromObject<Bullet>, GetTargetFromObject<Enemy>, nullptr, GetTargetFromObject<Boss>, GetTargetFromStage>;
 			lua_CFunction GetSpr = lua_GetObjectVar<void*, ObjectVarPushLUserdata, GetSprFromObject<Bullet>, GetSprFromObject<Enemy>, GetSprFromObject<Player>, GetSprFromObject<Boss>>;
 			lua_CFunction GetImg = lua_GetObjectVar<float, ObjectVarPushFloat, GetImgFromObject<Bullet>, GetImgFromObject<Enemy>, GetImgFromObject<Player>, GetImgFromObject<Boss>>;
+			lua_CFunction GetAngle = lua_GetObjectVar<float, ObjectVarPushFloat, nullptr, GetAngleFromObject<Enemy>, nullptr, nullptr>;
 
 			lua_register(L, "GetX", GetX);
 			lua_register(L, "GetY", GetY);
@@ -572,6 +669,7 @@ namespace th {
 			lua_register(L, "GetTarget", GetTarget);
 			lua_register(L, "GetSpr", GetSpr);
 			lua_register(L, "GetImg", GetImg);
+			lua_register(L, "GetAngle", GetAngle);
 
 			lua_CFunction SetX = lua_SetObjectVar<float, ObjectVarToFloat, SetXForObject<Bullet>, SetXForObject<Enemy>, SetXForObject<Player>, SetXForObject<Boss>>;
 			lua_CFunction SetY = lua_SetObjectVar<float, ObjectVarToFloat, SetYForObject<Bullet>, SetYForObject<Enemy>, SetYForObject<Player>, SetYForObject<Boss>>;
@@ -580,6 +678,7 @@ namespace th {
 			lua_CFunction SetAcc = lua_SetObjectVar<float, ObjectVarToFloat, SetAccForObject<Bullet>, SetAccForObject<Enemy>, nullptr, SetAccForObject<Boss>>;
 			lua_CFunction SetSpr = lua_SetObjectVar<void*, ObjectVarToLUserdata, SetSprForObject<Bullet>, SetSprForObject<Enemy>, SetSprForObject<Player>, SetSprForObject<Boss>>;
 			lua_CFunction SetImg = lua_SetObjectVar<float, ObjectVarToFloat, SetImgForObject<Bullet>, SetImgForObject<Enemy>, SetImgForObject<Player>, SetImgForObject<Boss>>;
+			lua_CFunction SetAngle = lua_SetObjectVar<float, ObjectVarToFloat, nullptr, SetAngleForObject<Enemy>, nullptr, nullptr>;
 
 			lua_register(L, "SetX", SetX);
 			lua_register(L, "SetY", SetY);
@@ -588,6 +687,7 @@ namespace th {
 			lua_register(L, "SetAcc", SetAcc);
 			lua_register(L, "SetSpr", SetSpr);
 			lua_register(L, "SetImg", SetImg);
+			lua_register(L, "SetAngle", SetAngle);
 
 			lua_pushboolean(L, game.skip_to_midboss);
 			lua_setglobal(L, "SKIP_TO_MIDBOSS");
@@ -595,7 +695,7 @@ namespace th {
 			lua_setglobal(L, "SKIP_TO_BOSS");
 		}
 
-		const auto& scripts = game.assets.GetScripts();
+		auto& scripts = game.assets.GetScripts();
 
 		for (auto script = scripts.begin(); script != scripts.end(); ++script) {
 			const char* buffer = script->second.data();
@@ -616,10 +716,16 @@ namespace th {
 		}
 
 		{
+			stage_memory = new unsigned char[100]{0};
+
 			StageData* data = GetStageData(scene.stage_index);
 
 			lua_getglobal(L, data->script);
 			coroutine = CreateCoroutine(L, L);
+
+			if (data->init) {
+				(*data->init)(&game, game.renderer, stage_memory);
+			}
 		}
 
 		CreatePlayer();
@@ -628,155 +734,121 @@ namespace th {
 	}
 
 	void Stage::Quit() {
-		for (auto enemy = enemies.begin(); enemy != enemies.end(); ++enemy) {
-			FreeEnemy(*enemy);
+		game.skip_to_midboss = false;
+		game.skip_to_boss = false;
+
+		{
+			StageData* data = GetStageData(scene.stage_index);
+			if (data->quit) {
+				(*data->quit)(&game, stage_memory);
+			}
+		}
+
+		delete[] stage_memory;
+
+		for (Enemy& enemy : enemies) {
+			FreeEnemy(enemy);
 		}
 		enemies.clear();
 
-		for (auto bullet = bullets.begin(); bullet != bullets.end(); ++bullet) {
-			FreeBullet(*bullet);
+		for (Bullet& bullet : bullets) {
+			FreeBullet(bullet);
 		}
 		bullets.clear();
-
-		FreePlayer();
 
 		FreeBoss();
 
 		lua_close(L); // crashes if L is null
 	}
 
-#define PLAYER_DEATH_TIME      20.0f
-#define PLAYER_APPEAR_TIME     20.0f
+	static bool CallLuaFunction(lua_State* L, int ref, instance_id id) {
+		if (ref == LUA_REFNIL) {
+			return true;
+		}
+
+		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+		if (!lua_isfunction(L, -1)) {
+			TH_LOG_ERROR("CallLuaFunction: not a function");
+			lua_pop(L, 1);
+			return false;
+		}
+
+		lua_pushinteger(L, id);
+		int res = lua_pcall(L, 1, 0, 0);
+		if (res != LUA_OK) {
+			TH_LOG_ERROR("CallLuaFunction: %s", lua_tostring(L, -1));
+			lua_pop(L, 1);
+			return false;
+		}
+
+		return true;
+	}
+
+	static void UpdateCoroutine(lua_State* L, int* coroutine, instance_id id) {
+		if (*coroutine == LUA_REFNIL) {
+			return;
+		}
+
+		lua_rawgeti(L, LUA_REGISTRYINDEX, *coroutine);
+		if (!lua_isthread(L, -1)) {
+			TH_SHOW_ERROR("coroutine ref is not a thread");
+			lua_settop(L, 0);
+			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
+			*coroutine = LUA_REFNIL;
+			return;
+		}
+
+		lua_State* NL = lua_tothread(L, -1);
+		lua_pop(L, 1);
+
+		if (!lua_isyieldable(NL)) {
+			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
+			*coroutine = LUA_REFNIL;
+			return;
+		}
+
+		lua_pushinteger(NL, id);
+		int nres;
+		int res = lua_resume(NL, L, 1, &nres);
+		if (res == LUA_OK) {
+			lua_pop(NL, nres);
+			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
+			*coroutine = LUA_REFNIL;
+		} else if (res != LUA_YIELD) {
+			TH_SHOW_ERROR("error while running stage coroutine\n%s", lua_tostring(NL, -1));
+			lua_settop(NL, 0);
+			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
+			*coroutine = LUA_REFNIL;
+		}
+	}
+
+#define PLAYER_DEATH_TIME      15.0f
+#define PLAYER_APPEAR_TIME     30.0f
 #define PLAYER_RESPAWN_IFRAMES 120.0f
 #define PLAYER_BOMB_TIME       (2.5f * 60.0f)
 
-	void Stage::Update(float delta) {
-		// update
-		{
-			UpdatePlayer(delta);
-
-			if (boss_exists) {
-				UpdateBoss(delta);
-			}
-
-			for (auto pickup = pickups.begin(); pickup != pickups.end(); ++pickup) {
-				if (pickup->homing) {
-					float spd = 8.0f;
-					float dir = cpml::point_direction(pickup->x, pickup->y, player.x, player.y);
-					pickup->hsp = cpml::lengthdir_x(spd, dir);
-					pickup->vsp = cpml::lengthdir_y(spd, dir);
-				} else {
-					pickup->hsp = 0.0f;
-					pickup->vsp += 0.025f;
-					pickup->vsp = std::min(pickup->vsp, 2.0f);
-				}
-			}
-
-			for (auto bullet = bullets.begin(); bullet != bullets.end(); ++bullet) {
-				if (bullet->type == ProjectileType::Lazer) {
-					if (bullet->lazer_timer < bullet->lazer_time) {
-						bullet->lazer_timer += delta;
-						bullet->length = cpml::lerp(0.0f, bullet->target_length, bullet->lazer_timer / bullet->lazer_time);
-					} else {
-						bullet->length = bullet->target_length;
-					}
-				}
-			}
-
-			for (PlayerBullet& bullet : player_bullets) {
-				switch (bullet.type) {
-					case PLAYER_BULLET_REIMU_CARD: {
-						bullet.rotation += 16.0f * delta;
-						break;
-					}
-					case PLAYER_BULLET_REIMU_ORB_SHOT: {
-						// home
-						break;
-					}
-				}
+	template <typename Object>
+	static Object* FindClosest(std::vector<Object>& storage, float x, float y) {
+		float closest_dist = 1'000'000.0f;
+		Object* result = nullptr;
+		for (Object& object : storage) {
+			float dist = cpml::point_distance(x, y, object.x, object.y);
+			if (dist < closest_dist) {
+				result = &object;
+				closest_dist = dist;
 			}
 		}
-
-		// physics
-		{
-			float physics_update_rate = 1.0f / 300.0f; // 300 fps
-			float physics_timer = delta * 1.0f;//g_stage->gameplay_delta;
-			while (physics_timer > 0.0f) {
-				float pdelta = std::min(physics_timer, physics_update_rate * 60.0f);
-				PhysicsUpdate(pdelta);
-				physics_timer -= pdelta;
-			}
-		}
-
-		// coroutines
-		{
-			coro_update_timer += delta;
-			while (coro_update_timer >= 1.0f) {
-				CallCoroutines();
-				coro_update_timer -= 1.0f;
-			}
-		}
-
-		// late update
-		{
-			player.x = std::clamp(player.x, 0.0f, (float)PLAY_AREA_W - 1.0f);
-			player.y = std::clamp(player.y, 0.0f, (float)PLAY_AREA_H - 1.0f);
-
-			for (auto bullet = bullets.begin(); bullet != bullets.end();) {
-				float x = bullet->x;
-				float y = bullet->y;
-				if (x < 0.0f || x >= (float)PLAY_AREA_W || y < 0.0f || y >= (float)PLAY_AREA_H) {
-					FreeBullet(*bullet);
-					bullet = bullets.erase(bullet);
-					continue;
-				}
-				bullet->lifetime += delta;
-				if (bullet->lifetime > 60.0f * 60.0f) {
-					FreeBullet(*bullet);
-					bullet = bullets.erase(bullet);
-					continue;
-				}
-				++bullet;
-			}
-
-			for (auto pickup = pickups.begin(); pickup != pickups.end();) {
-				float x = pickup->x;
-				float y = pickup->y;
-				if (x < 0.0f || x >= (float)PLAY_AREA_W || y < -50.0f || y >= (float)PLAY_AREA_H) {
-					pickup = pickups.erase(pickup);
-					continue;
-				}
-				++pickup;
-			}
-
-			for (auto b = player_bullets.begin(); b != player_bullets.end();) {
-				float x = b->x;
-				float y = b->y;
-				if (x < 0.0f || x >= (float)PLAY_AREA_W || y < 0.0f || y >= (float)PLAY_AREA_H) {
-					b = player_bullets.erase(b);
-					continue;
-				}
-				++b;
-			}
-		}
-
-		{
-			if (boss_exists) {
-				UpdateSpriteComponent(boss.sc, delta);
-			}
-
-			for (auto enemy = enemies.begin(); enemy != enemies.end(); ++enemy) {
-				UpdateSpriteComponent(enemy->sc, delta);
-			}
-		}
-
-		time += delta;
+		return result;
 	}
 
 	void Stage::UpdatePlayer(float delta) {
 		const unsigned char* key = SDL_GetKeyboardState(nullptr);
 
-		if (game.key_pressed[SDL_SCANCODE_P]) scene.stats.power += 8;
+		player.hsp = 0.0f;
+		player.vsp = 0.0f;
+		player.focus = false;
+
+		CharacterData* character = GetCharacterData(game.player_character);
 
 		switch (player.state) {
 			case PlayerState::Normal: {
@@ -796,8 +868,6 @@ namespace th {
 					ymove /= len;
 				}
 
-				CharacterData* character = GetCharacterData(game.player_character);
-
 				float spd = player.focus ? character->focus_spd : character->move_spd;
 				player.hsp = xmove * spd;
 				player.vsp = ymove * spd;
@@ -807,7 +877,7 @@ namespace th {
 				}
 
 				if (key[SDL_SCANCODE_X]) {
-					if (player.bomb_timer == 0.f) {
+					if (player.bomb_timer == 0.0f) {
 						if (scene.stats.bombs > 0) {
 							if (character->bomb) {
 								(*character->bomb)(&game);
@@ -853,11 +923,57 @@ namespace th {
 				break;
 			}
 			case PlayerState::Dying: {
+				if (key[SDL_SCANCODE_X]) {
+					if ((PLAYER_DEATH_TIME - player.timer) < character->deathbomb_time) {
+						if (player.bomb_timer == 0.0f) {
+							if (scene.stats.bombs > 0) {
+								if (character->bomb) {
+									(*character->bomb)(&game);
+								}
+								scene.stats.bombs--;
+								player.bomb_timer = PLAYER_BOMB_TIME;
+								player.state = PlayerState::Normal;
+								player.iframes = PLAYER_RESPAWN_IFRAMES;
+							}
+						}
+					}
+				}
 
+				player.timer = std::max(player.timer - delta, 0.0f);
+				if (player.timer == 0.0f) {
+					if (scene.stats.lives > 0) {
+						scene.stats.lives--;
+
+						int drop = std::min(scene.stats.power, 16);
+						scene.stats.power -= drop;
+						drop = std::min(drop, 12);
+						while (drop > 0) {
+							int type;
+							if (drop >= 8) {
+								drop -= 8;
+								type = PICKUP_BIGP;
+							} else {
+								drop--;
+								type = PICKUP_POWER;
+							}
+							float x = player.x + random.range(-50.0f, 50.0f);
+							float y = player.y + random.range(-50.0f, 50.0f);
+							CreatePickup(x, y, type);
+						}
+					} else {
+						//g_screen->GameOver();
+						CreatePickup(player.x, player.y, PICKUP_FULL_POWER);
+					}
+					CreatePlayer(true);
+					return;
+				}
 				break;
 			}
 			case PlayerState::Appearing: {
-
+				player.timer = std::max(player.timer - delta, 0.0f);
+				if (player.timer == 0.0f) {
+					player.state = PlayerState::Normal;
+				}
 				break;
 			}
 		}
@@ -869,6 +985,304 @@ namespace th {
 		} else {
 			player.hitbox_alpha = cpml::approach(player.hitbox_alpha, 0.0f, 0.1f * delta);
 		}
+
+#ifdef TH_DEBUG
+		if (game.key_pressed[SDL_SCANCODE_P]) scene.GetPower(8);
+#endif
+	}
+
+	void Stage::CallCoroutines() {
+		UpdateCoroutine(L, &coroutine, -1);
+
+		if (boss_exists) {
+			UpdateCoroutine(L, &boss.coroutine, boss.id);
+		}
+
+		for (size_t i = 0, n = enemies.size(); i < n; i++) {
+			UpdateCoroutine(L, &enemies[i].coroutine, enemies[i].id);
+		}
+
+		for (size_t i = 0, n = bullets.size(); i < n; i++) {
+			UpdateCoroutine(L, &bullets[i].coroutine, bullets[i].id);
+		}
+	}
+
+	void Stage::Update(float delta) {
+		// update
+		{
+			UpdatePlayer(delta);
+
+			if (boss_exists) {
+				UpdateBoss(delta);
+			}
+
+			for (Pickup& pickup : pickups) {
+				if (pickup.homing) {
+					float spd = 8.0f;
+					float dir = cpml::point_direction(pickup.x, pickup.y, player.x, player.y);
+					pickup.hsp = cpml::lengthdir_x(spd, dir);
+					pickup.vsp = cpml::lengthdir_y(spd, dir);
+
+					if (player.state != PlayerState::Normal) {
+						pickup.hsp = 0.0f;
+						pickup.vsp = -1.5f;
+						pickup.homing = false;
+					}
+				} else {
+					pickup.hsp = 0.0f;
+					pickup.vsp += 0.025f * delta;
+					pickup.vsp = std::min(pickup.vsp, 2.0f);
+				}
+			}
+
+			for (Bullet& bullet : bullets) {
+				switch (bullet.type) {
+					case ProjectileType::Lazer: {
+						if (bullet.lazer_timer < bullet.lazer_time) {
+							bullet.lazer_timer += delta;
+							bullet.length = cpml::lerp(0.0f, bullet.target_length, bullet.lazer_timer / bullet.lazer_time);
+						} else {
+							bullet.length = bullet.target_length;
+						}
+						break;
+					}
+					case ProjectileType::SLazer: {
+						if (bullet.lazer_timer < bullet.lazer_time) {
+							bullet.lazer_timer += delta;
+							bullet.length = 0.0f;
+						} else {
+							bullet.length = bullet.target_length;
+						}
+						break;
+					}
+				}
+			}
+
+			for (PlayerBullet& bullet : player_bullets) {
+				switch (bullet.type) {
+					case PLAYER_BULLET_REIMU_CARD: {
+						bullet.rotation += 16.0f * delta;
+						break;
+					}
+					case PLAYER_BULLET_REIMU_ORB_SHOT: {
+						float target_x = 0.0f;
+						float target_y = 0.0f;
+						float target_dist = 1'000'000.0f;
+						bool home = false;
+
+						Enemy* enemy = FindClosest(enemies, bullet.x, bullet.y);
+						if (enemy) {
+							target_x = enemy->x;
+							target_y = enemy->y;
+							target_dist = cpml::point_distance(bullet.x, bullet.y, enemy->x, enemy->y);
+							home = true;
+						}
+
+						if (boss_exists) {
+							float boss_dist = cpml::point_distance(bullet.x, bullet.y, boss.x, boss.y);
+							if (boss_dist < target_dist) {
+								target_x = boss.x;
+								target_y = boss.y;
+								target_dist = boss_dist;
+								home = true;
+							}
+						}
+
+						if (home) {
+							// @goofy
+							float hsp = cpml::lengthdir_x(bullet.spd, bullet.dir);
+							float vsp = cpml::lengthdir_y(bullet.spd, bullet.dir);
+							float dx = target_x - bullet.x;
+							float dy = target_y - bullet.y;
+							dx = std::clamp(dx, -12.0f, 12.0f);
+							dy = std::clamp(dy, -12.0f, 12.0f);
+							hsp = cpml::approach(hsp, dx, 1.5f * delta);
+							vsp = cpml::approach(vsp, dy, 1.5f * delta);
+							bullet.spd = cpml::point_distance(0.0f, 0.0f, hsp, vsp);
+							bullet.dir = cpml::point_direction(0.0f, 0.0f, hsp, vsp);
+
+							//float target_dir = cpml::point_direction(bullet.x, bullet.y, target_x, target_y);
+							//bullet.dir += cpml::angle_difference(target_dir, bullet.dir) / 20.0f;
+						} else {
+							if (bullet.spd < 10.0f) {
+								bullet.spd += 1.0f * delta;
+							}
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		// physics
+		{
+			float physics_update_rate = 1.0f / 300.0f; // 300 fps
+			float physics_timer = delta * /*g_stage->gameplay_delta*/1.0f;
+			while (physics_timer > 0.0f) {
+				float pdelta = std::min(physics_timer, physics_update_rate * 60.0f);
+				PhysicsUpdate(pdelta);
+				physics_timer -= pdelta;
+			}
+		}
+
+		// scripts
+		{
+			coro_update_timer += delta;
+			while (coro_update_timer >= 1.0f) {
+				CallCoroutines();
+				coro_update_timer -= 1.0f;
+			}
+
+			for (size_t i = 0, n = enemies.size(); i < n; i++) {
+				CallLuaFunction(L, enemies[i].update_callback, enemies[i].id);
+			}
+		}
+
+		// cleanup
+		{
+			for (auto enemy = enemies.begin(); enemy != enemies.end();) {
+				if (enemy->dead) {
+					FreeEnemy(*enemy);
+					enemy = enemies.erase(enemy);
+					continue;
+				}
+				++enemy;
+			}
+
+			for (auto bullet = bullets.begin(); bullet != bullets.end();) {
+				if (bullet->dead) {
+					FreeBullet(*bullet);
+					bullet = bullets.erase(bullet);
+					continue;
+				}
+				++bullet;
+			}
+
+			if (player.dead) {
+				CreatePlayer(true);
+			}
+
+			if (boss_exists) {
+				if (boss.dead) {
+					FreeBoss();
+					boss_exists = false;
+				}
+			}
+		}
+
+		// late update
+		{
+			player.x = std::clamp(player.x, 0.0f, (float)PLAY_AREA_W - 1.0f);
+			player.y = std::clamp(player.y, 0.0f, (float)PLAY_AREA_H - 1.0f);
+
+			for (auto bullet = bullets.begin(); bullet != bullets.end();) {
+				float x = bullet->x;
+				float y = bullet->y;
+				if (x < 0.0f || x >= (float)PLAY_AREA_W || y < 0.0f || y >= (float)PLAY_AREA_H) {
+					FreeBullet(*bullet);
+					bullet = bullets.erase(bullet);
+					continue;
+				}
+				bullet->lifetime += delta;
+				if (bullet->lifetime > 60.0f * 60.0f) {
+					FreeBullet(*bullet);
+					bullet = bullets.erase(bullet);
+					continue;
+				}
+				if (bullet->type == ProjectileType::SLazer) {
+					if (bullet->lifetime >= bullet->lazer_lifetime) {
+						FreeBullet(*bullet);
+						bullet = bullets.erase(bullet);
+						continue;
+					}
+				}
+				++bullet;
+			}
+
+			for (auto pickup = pickups.begin(); pickup != pickups.end();) {
+				float x = pickup->x;
+				float y = pickup->y;
+				if (x < 0.0f || x >= (float)PLAY_AREA_W || y < -50.0f || y >= (float)PLAY_AREA_H) {
+					pickup = pickups.erase(pickup);
+					continue;
+				}
+				++pickup;
+			}
+
+			for (auto b = player_bullets.begin(); b != player_bullets.end();) {
+				float x = b->x;
+				float y = b->y;
+				if (x < 0.0f || x >= (float)PLAY_AREA_W || y < 0.0f || y >= (float)PLAY_AREA_H) {
+					b = player_bullets.erase(b);
+					continue;
+				}
+				++b;
+			}
+
+			for (auto e = enemies.begin(); e != enemies.end();) {
+				float x = e->x;
+				float y = e->y;
+				if (x < 0.0f || x >= (float)PLAY_AREA_W || y < 0.0f || y >= (float)PLAY_AREA_H) {
+					FreeEnemy(*e);
+					e = enemies.erase(e);
+					continue;
+				}
+				++e;
+			}
+		}
+
+		// animate
+		{
+			if (boss_exists) {
+				UpdateSpriteComponent(boss.sc, delta);
+			}
+
+			for (Enemy& enemy : enemies) {
+				UpdateSpriteComponent(enemy.sc, delta);
+			}
+		}
+
+		{
+			bool spellcard_bg_on_screen = false;
+			if (boss_exists) {
+				BossData* data = GetBossData(boss.type_index);
+				PhaseData* phase = GetPhaseData(data, boss.phase_index);
+
+				if (phase->type == PHASE_SPELLCARD) {
+					if (boss.state != BossState::WaitingEnd) {
+						spellcard_bg_on_screen = true;
+					}
+				}
+			}
+
+			if (spellcard_bg_on_screen) {
+				spellcard_bg_alpha = cpml::approach(spellcard_bg_alpha, 1.0f, 1.0f / 30.0f * delta);
+			} else {
+				spellcard_bg_alpha = 0.0f;
+			}
+		}
+
+		screen_shake_timer = std::max(screen_shake_timer - delta, 0.0f);
+
+		if (screen_shake_timer > 0.0f) {
+			float power = screen_shake_power * (screen_shake_timer / screen_shake_time);
+			screen_shake_x = game.random.range(-power / 2.0f, power / 2.0f);
+			screen_shake_y = game.random.range(-power / 2.0f, power / 2.0f);
+		} else {
+			screen_shake_x = 0.0f;
+			screen_shake_y = 0.0f;
+		}
+
+		{
+			StageData* stage = GetStageData(scene.stage_index);
+			if (stage->update) {
+				(*stage->update)(&game, stage_memory, spellcard_bg_alpha < 1.0f, delta);
+			}
+		}
+
+		time += delta;
+
+		//std::cout << (double)(lua_gc(L, LUA_GCCOUNT) * 1024 + lua_gc(L, LUA_GCCOUNTB)) / 1024.0 << std::endl;
 	}
 
 	void Stage::UpdateSpriteComponent(SpriteComponent& sc, float delta) {
@@ -895,6 +1309,21 @@ namespace th {
 		}
 	}
 
+	static bool PlayerVsBullet(Player& player, float player_radius, Bullet& bullet) {
+		switch (bullet.type) {
+			case ProjectileType::Bullet: {
+				return cpml::circle_vs_circle(player.x, player.y, player_radius, bullet.x, bullet.y, bullet.radius);
+			}
+			case ProjectileType::Lazer:
+			case ProjectileType::SLazer: {
+				float rect_center_x = bullet.x + cpml::lengthdir_x(bullet.length / 2.0f, bullet.dir);
+				float rect_center_y = bullet.y + cpml::lengthdir_y(bullet.length / 2.0f, bullet.dir);
+				return cpml::circle_vs_rotated_rect(player.x, player.y, player_radius, rect_center_x, rect_center_y, bullet.thickness, bullet.length, bullet.dir);
+			}
+		}
+		return false;
+	}
+
 	void Stage::PhysicsUpdate(float delta) {
 		{
 			player.x += player.hsp * delta;
@@ -904,23 +1333,29 @@ namespace th {
 				MoveObject(boss, delta);
 			}
 
-			for (auto enemy = enemies.begin(); enemy != enemies.end(); ++enemy) {
-				MoveObject(*enemy, delta);
+			for (Enemy& enemy : enemies) {
+				MoveObject(enemy, delta);
 			}
 
-			for (auto bullet = bullets.begin(); bullet != bullets.end(); ++bullet) {
-				if (bullet->type == ProjectileType::Lazer) {
-					if (bullet->lazer_timer >= bullet->lazer_time) {
-						MoveObject(*bullet, delta);
+			for (Bullet& bullet : bullets) {
+				switch (bullet.type) {
+					case ProjectileType::Lazer:
+					case ProjectileType::SLazer: {
+						if (bullet.lazer_timer >= bullet.lazer_time) {
+							MoveObject(bullet, delta);
+						}
+						break;
 					}
-				} else {
-					MoveObject(*bullet, delta);
+					default: {
+						MoveObject(bullet, delta);
+						break;
+					}
 				}
 			}
 
-			for (auto pickup = pickups.begin(); pickup != pickups.end(); ++pickup) {
-				pickup->x += pickup->hsp * delta;
-				pickup->y += pickup->vsp * delta;
+			for (Pickup& pickup : pickups) {
+				pickup.x += pickup.hsp * delta;
+				pickup.y += pickup.vsp * delta;
 			}
 
 			for (PlayerBullet& b : player_bullets) {
@@ -932,20 +1367,60 @@ namespace th {
 			CharacterData* character = GetCharacterData(game.player_character);
 
 			// player vs bullet
+			for (auto bullet = bullets.begin(); bullet != bullets.end();) {
+				if (PlayerVsBullet(player, character->graze_radius, *bullet)) {
+					if (player.state == PlayerState::Normal) {
+						if (!bullet->grazed) {
+							scene.GetGraze(1);
+
+							Mix_Chunk* sound = game.assets.GetSound("se_graze.wav");
+							StopSound(sound);
+							Mix_PlayChannel(-1, sound, 0);
+
+							bullet->grazed = true;
+						}
+					}
+				}
+
+				if (PlayerVsBullet(player, player.radius, *bullet)) {
+					if (player.state == PlayerState::Normal) {
+						if (player.iframes == 0.0f) {
+							player.state = PlayerState::Dying;
+							player.timer = PLAYER_DEATH_TIME;
+
+							Mix_Chunk* sound = game.assets.GetSound("se_pichuun.wav");
+							StopSound(sound);
+							Mix_PlayChannel(-1, sound, 0);
+
+							bullets.erase(bullet);
+							break;
+						}
+					}
+				}
+
+				++bullet;
+			}
 
 			// player vs pickup
 			for (auto pickup = pickups.begin(); pickup != pickups.end();) {
 				if (cpml::circle_vs_circle(player.x, player.y, character->graze_radius, pickup->x, pickup->y, pickup->radius)) {
 					if (player.state == PlayerState::Normal) {
 						switch (pickup->type) {
-							case PICKUP_POWER:      /*g_screen->get_power (i, 1);        */ break;
-							case PICKUP_POINT:      /*g_screen->get_points(i, 1);        */ break;
-							case PICKUP_BIGP:       /*g_screen->get_power (i, 8);        */ break;
-							case PICKUP_BOMB:       /*g_screen->get_bombs (i, 1);        */ break;
-							case PICKUP_FULL_POWER: /*g_screen->get_power (i, MAX_POWER);*/ break;
-							case PICKUP_1UP:        /*g_screen->get_lives (i, 1);        */ break;
-							case PICKUP_SCORE:      /*g_screen->get_score (i, 10);       */ break;
+							case PICKUP_POWER:
+								scene.GetPower(1);
+								scene.GetScore(10);
+								break;
+							case PICKUP_POINT:      scene.GetPoints(1);        break;
+							case PICKUP_BIGP:       scene.GetPower(8);         break;
+							case PICKUP_BOMB:       scene.GetBombs(1);         break;
+							case PICKUP_FULL_POWER: scene.GetPower(MAX_POWER); break;
+							case PICKUP_1UP:        scene.GetLives(1);         break;
+							case PICKUP_SCORE:      scene.GetScore(10);        break;
 						}
+
+						Mix_Chunk* sound = game.assets.GetSound("se_item.wav");
+						StopSound(sound);
+						Mix_PlayChannel(-1, sound, 0);
 
 						pickup = pickups.erase(pickup);
 						continue;
@@ -958,31 +1433,44 @@ namespace th {
 			if (boss_exists) {
 				for (auto bullet = player_bullets.begin(); bullet != player_bullets.end();) {
 					if (cpml::circle_vs_circle(boss.x, boss.y, boss.radius, bullet->x, bullet->y, bullet->radius)) {
+						Mix_Chunk* sound = game.assets.GetSound("se_enemy_hit.wav");
+						StopSound(sound);
+						Mix_PlayChannel(-1, sound, 0);
+
 						if (boss.state == BossState::Normal) {
 							boss.hp -= bullet->dmg;
-							bullet = player_bullets.erase(bullet);
 							if (boss.hp <= 0.0f) {
 								EndBossPhase();
+								player_bullets.erase(bullet);
 								break;
 							}
-							continue;
-						} else {
-							bullet = player_bullets.erase(bullet);
-							continue;
 						}
+
+						bullet = player_bullets.erase(bullet);
+						continue;
 					}
 					++bullet;
 				}
 			}
 
 			// enemy vs bullet
-			for (auto enemy = enemies.begin(); enemy != enemies.end();) {
+			// @goofy
+			for (size_t i = 0, n = enemies.size(); i < n; i++) {
 				bool enemy_dead = false;
 				for (auto bullet = player_bullets.begin(); bullet != player_bullets.end();) {
-					if (cpml::circle_vs_circle(enemy->x, enemy->y, enemy->radius, bullet->x, bullet->y, bullet->radius)) {
-						enemy->hp -= bullet->dmg;
+					if (cpml::circle_vs_circle(enemies[i].x, enemies[i].y, enemies[i].radius, bullet->x, bullet->y, bullet->radius)) {
+						enemies[i].hp -= bullet->dmg;
 						bullet = player_bullets.erase(bullet);
-						if (enemy->hp <= 0.0f) {
+
+						Mix_Chunk* sound = game.assets.GetSound("se_enemy_hit.wav");
+						StopSound(sound);
+						Mix_PlayChannel(-1, sound, 0);
+
+						if (enemies[i].hp <= 0.0f) {
+							Mix_Chunk* sound = game.assets.GetSound("se_enemy_die.wav");
+							StopSound(sound);
+							Mix_PlayChannel(-1, sound, 0);
+
 							enemy_dead = true;
 							break;
 						}
@@ -991,10 +1479,13 @@ namespace th {
 					++bullet;
 				}
 				if (enemy_dead) {
-					enemy = enemies.erase(enemy);
-					continue;
+					CallLuaFunction(L, enemies[i].death_callback, enemies[i].id);
+
+					FreeEnemy(enemies[i]);
+					enemies.erase(enemies.begin() + i);
+					i--;
+					n--;
 				}
-				++enemy;
 			}
 		}
 	}
@@ -1021,18 +1512,26 @@ namespace th {
 		boss.state = BossState::WaitingStart;
 
 		if (boss.phase_index > 0) {
-			LaunchTowardsPoint(boss, BOSS_STARTING_X, BOSS_STARTING_Y, 0.05);
+			LaunchTowardsPoint(boss, BOSS_STARTING_X, BOSS_STARTING_Y, 0.05f);
+		}
+
+		if (phase->type == PHASE_SPELLCARD) {
+			Mix_Chunk* sound = game.assets.GetSound("se_spellcard.wav");
+			StopSound(sound);
+			Mix_PlayChannel(-1, sound, 0);
 		}
 	}
 
 	bool Stage::EndBossPhase() {
-		for (auto bullet = bullets.begin(); bullet != bullets.end(); ++bullet) {
-			Pickup& pickup = CreatePickup(bullet->x, bullet->y, PICKUP_SCORE);
-			pickup.homing = true;
-
-			FreeBullet(*bullet);
+		for (Bullet& bullet : bullets) {
+			CreatePickup(bullet.x, bullet.y, PICKUP_SCORE);
+			FreeBullet(bullet);
 		}
 		bullets.clear();
+
+		for (Pickup& pickup : pickups) {
+			pickup.homing = true;
+		}
 
 		if (boss.coroutine != LUA_REFNIL) {
 			luaL_unref(L, LUA_REGISTRYINDEX, boss.coroutine);
@@ -1045,8 +1544,8 @@ namespace th {
 		if (phase->type == PHASE_SPELLCARD) {
 			// drop some pickups
 			for (int i = 0; i < 5; i++) {
-				float x = boss.x + random_range(-50.f, 50.f);
-				float y = boss.y + random_range(-50.f, 50.f);
+				float x = boss.x + random.range(-50.0f, 50.0f);
+				float y = boss.y + random.range(-50.0f, 50.0f);
 				unsigned char type = (i == 4) ? PICKUP_BIGP : PICKUP_POWER;
 				CreatePickup(x, y, type);
 			}
@@ -1060,9 +1559,25 @@ namespace th {
 				boss.phase_index++;
 				StartBossPhase();
 			}
+
+			Mix_Chunk* sound = game.assets.GetSound("se_enemy_die.wav");
+			StopSound(sound);
+			Mix_PlayChannel(-1, sound, 0);
 		} else {
-			for (auto pickup = pickups.begin(); pickup != pickups.end(); ++pickup) {
-				pickup->homing = true;
+			for (Pickup& pickup : pickups) {
+				pickup.homing = true;
+			}
+
+			if (data->type == BOSS_BOSS) {
+				Mix_Chunk* sound = game.assets.GetSound("se_boss_die.wav");
+				StopSound(sound);
+				Mix_PlayChannel(-1, sound, 0);
+
+				ScreenShake(10.0f, 120.0f);
+			} else {
+				Mix_Chunk* sound = game.assets.GetSound("se_enemy_die.wav");
+				StopSound(sound);
+				Mix_PlayChannel(-1, sound, 0);
 			}
 
 			FreeBoss();
@@ -1076,7 +1591,7 @@ namespace th {
 		switch (boss.state) {
 			case BossState::Normal: {
 				boss.timer = std::max(boss.timer - delta, 0.0f);
-				if (boss.timer == 0.f) {
+				if (boss.timer == 0.0f) {
 					EndBossPhase();
 
 					if (!boss_exists) {
@@ -1087,7 +1602,7 @@ namespace th {
 			}
 			case BossState::WaitingStart: {
 				boss.wait_timer = std::max(boss.wait_timer - delta, 0.0f);
-				if (boss.wait_timer == 0.f) {
+				if (boss.wait_timer == 0.0f) {
 					BossData* data = GetBossData(boss.type_index);
 					PhaseData* phase = GetPhaseData(data, boss.phase_index);
 
@@ -1135,66 +1650,16 @@ namespace th {
 		//std::cout << "phase " << boss.phase_index << std::endl;
 	}
 
-	static void UpdateCoroutine(lua_State* L, int* coroutine, instance_id id) {
-		if (*coroutine == LUA_REFNIL) {
-			return;
-		}
-
-		lua_rawgeti(L, LUA_REGISTRYINDEX, *coroutine);
-		if (!lua_isthread(L, -1)) {
-			TH_SHOW_ERROR("coroutine ref is not a thread");
-			lua_settop(L, 0);
-			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
-			*coroutine = LUA_REFNIL;
-			return;
-		}
-
-		lua_State* NL = lua_tothread(L, -1);
-		lua_pop(L, 1);
-
-		if (!lua_isyieldable(NL)) {
-			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
-			*coroutine = LUA_REFNIL;
-			return;
-		}
-
-		lua_pushinteger(NL, id);
-		int nres;
-		int res = lua_resume(NL, L, 1, &nres);
-		if (res == LUA_OK) {
-			lua_pop(NL, nres);
-			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
-			*coroutine = LUA_REFNIL;
-		} else if (res != LUA_YIELD) {
-			TH_SHOW_ERROR("error while running stage coroutine\n%s", lua_tostring(NL, -1));
-			lua_settop(NL, 0);
-			luaL_unref(L, LUA_REGISTRYINDEX, *coroutine);
-			*coroutine = LUA_REFNIL;
-		}
-	}
-
-	void Stage::CallCoroutines() {
-		UpdateCoroutine(L, &coroutine, -1);
-
-		if (boss_exists) {
-			UpdateCoroutine(L, &boss.coroutine, boss.id);
-		}
-
-		for (auto enemy = enemies.begin(); enemy != enemies.end(); ++enemy) {
-			UpdateCoroutine(L, &enemy->coroutine, enemy->id);
-		}
-
-		for (auto bullet = bullets.begin(); bullet != bullets.end(); ++bullet) {
-			UpdateCoroutine(L, &bullet->coroutine, bullet->id);
-		}
-	}
-
 	template <typename Object>
-	static void DrawObject(SDL_Renderer* renderer, const Object& object, float angle = 0.0f, float xscale = 1.0f, float yscale = 1.0f, SDL_Color color = {255, 255, 255, 255}) {
+	void Stage::DrawObject(SDL_Renderer* renderer, Object& object, float angle, float xscale, float yscale, SDL_Color color) {
 		float x = object.x;
 		float y = object.y;
 		SpriteData* sprite = object.sc.sprite;
 		int frame_index = (int)object.sc.frame_index;
+
+		x += screen_shake_x;
+		y += screen_shake_y;
+
 		DrawSprite(renderer, sprite, frame_index, x, y, angle, xscale, yscale, color);
 	}
 
@@ -1204,50 +1669,81 @@ namespace th {
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 			SDL_RenderClear(renderer);
 
-			// bg
+			// stage bg
 			{
-				SDL_Texture* texture = game.assets.GetTexture("MistyLakeTexture.png");
+				StageData* stage = GetStageData(scene.stage_index);
+				if (stage->draw) {
+					(*stage->draw)(&game, renderer, stage_memory, spellcard_bg_alpha < 1.0f, delta);
+				}
+			}
+
+			// spell card bg
+			if (spellcard_bg_alpha > 0.0f) {
+				SDL_Texture* texture = game.assets.GetTexture("CirnoSpellcardBG.png");
 				SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
+				SDL_SetTextureAlphaMod(texture, (unsigned char)(255.0f * spellcard_bg_alpha));
 				{
-					SDL_Rect dest{0, (int)time / 4 % PLAY_AREA_W - PLAY_AREA_W, PLAY_AREA_W, PLAY_AREA_W};
+					SDL_Rect dest{0, (int)time / 5 % PLAY_AREA_W - PLAY_AREA_W, PLAY_AREA_W, PLAY_AREA_W};
 					SDL_RenderCopy(renderer, texture, nullptr, &dest);
 				}
 				{
-					SDL_Rect dest{0, (int)time / 4 % PLAY_AREA_W, PLAY_AREA_W, PLAY_AREA_W};
+					SDL_Rect dest{0, (int)time / 5 % PLAY_AREA_W, PLAY_AREA_W, PLAY_AREA_W};
 					SDL_RenderCopy(renderer, texture, nullptr, &dest);
 				}
 				{
-					SDL_Rect dest{0, (int)time / 4 % PLAY_AREA_W + PLAY_AREA_W, PLAY_AREA_W, PLAY_AREA_W};
+					SDL_Rect dest{0, (int)time / 5 % PLAY_AREA_W + PLAY_AREA_W, PLAY_AREA_W, PLAY_AREA_W};
 					SDL_RenderCopy(renderer, texture, nullptr, &dest);
 				}
 			}
 
-			for (auto enemy = enemies.begin(); enemy != enemies.end(); ++enemy) {
-				DrawObject(renderer, *enemy);
+			for (Enemy& enemy : enemies) {
+				DrawObject(renderer, enemy, enemy.angle);
 			}
 
 			if (boss_exists) {
 				DrawObject(renderer, boss, 0.0f, -boss.facing, 1.0f);
 			}
 
-			// player
+			// draw player
 			{
 				SDL_Color color = {255, 255, 255, 255};
-				if (player.iframes > 0.0f) {
-					if (((int)time / 4) % 2) {
-						color.a /= 2;
+				float xscale = 1.0f;
+				float yscale = 1.0f;
+
+				if (player.state == PlayerState::Dying || player.state == PlayerState::Appearing) {
+					float f;
+					if (player.state == PlayerState::Dying) {
+						f = 1.0f - player.timer / PLAYER_DEATH_TIME;
+					} else {
+						f = player.timer / PLAYER_APPEAR_TIME;
+					}
+					//f = std::min(f * 2.0f, 1.0f);
+
+					xscale = cpml::lerp(1.0f, 0.25f, f);
+					yscale = cpml::lerp(1.0f, 2.0f, f);
+					color.a = (unsigned char)cpml::lerp(255.0f, 0.0f, f);
+				} else {
+					if (player.iframes > 0.0f) {
+						if (((int)time / 4) % 2) {
+							//color.a /= 2;
+							color = {128, 128, 128, 128};
+						}
 					}
 				}
-				DrawObject(renderer, player, 0.0f, -player.facing, 1.0f, color);
+
+				DrawObject(renderer, player, 0.0f, -player.facing * xscale, yscale, color);
+
 				if (player.hitbox_alpha > 0.0f) {
 					SpriteData* sprite = game.assets.GetSprite("Hitbox");
 					unsigned char a = (unsigned char) (255.0f * player.hitbox_alpha);
-					DrawSprite(renderer, sprite, 0, player.x, player.y, -time, 1.0f, 1.0f, {255, 255, 255, a});
+					float x = player.x + screen_shake_x;
+					float y = player.y + screen_shake_y;
+					DrawSprite(renderer, sprite, 0, x, y, -time, 1.0f, 1.0f, {255, 255, 255, a});
 				}
 			}
 
-			for (auto pickup = pickups.begin(); pickup != pickups.end(); ++pickup) {
-				DrawObject(renderer, *pickup);
+			for (Pickup& pickup : pickups) {
+				DrawObject(renderer, pickup);
 			}
 
 			for (PlayerBullet& b : player_bullets) {
@@ -1264,21 +1760,35 @@ namespace th {
 				}
 			}
 
-			for (auto bullet = bullets.begin(); bullet != bullets.end(); ++bullet) {
-				if (bullet->type == ProjectileType::Lazer) {
-					float angle = bullet->dir + 90.0f;
-					float xscale = (bullet->thickness + 2.0f) / 16.0f;
-					float yscale = bullet->length / 16.0f;
-					DrawObject(renderer, *bullet, angle, xscale, yscale);
-				} else {
-					float angle = 0.0f;
-					if (bullet->rotate) {
-						angle = bullet->dir - 90.0f;
+			for (Bullet& bullet : bullets) {
+				switch (bullet.type) {
+					case ProjectileType::Lazer: {
+						float angle = bullet.dir + 90.0f;
+						float xscale = (bullet.thickness + 2.0f) / 16.0f;
+						float yscale = bullet.length / 16.0f;
+						DrawObject(renderer, bullet, angle, xscale, yscale);
+						break;
 					}
-					DrawObject(renderer, *bullet, angle);
+					case ProjectileType::SLazer: {
+						float angle = bullet.dir + 90.0f;
+						float xscale = (bullet.thickness + 2.0f) / 16.0f;
+						float yscale = bullet.target_length / 16.0f;
+						if (bullet.lazer_timer < bullet.lazer_time) {
+							xscale = 2.0f / 16.0f;
+						}
+						DrawObject(renderer, bullet, angle, xscale, yscale);
+						break;
+					}
+					default: {
+						float angle = 0.0f;
+						if (bullet.rotate) {
+							angle = bullet.dir - 90.0f;
+						}
+						DrawObject(renderer, bullet, angle);
+						break;
+					}
 				}
 			}
-
 
 			// GUI
 			{
@@ -1289,7 +1799,7 @@ namespace th {
 						int frame_index = pickup.type + PICKUP_COUNT;
 						float x = pickup.x;
 						float y = 8.0f;
-						SDL_Color color{255, 255, 255, 128};
+						SDL_Color color{255, 255, 255, 192};
 						DrawSprite(renderer, sprite, frame_index, x, y, 0.0f, 1.0f, 1.0f, color);
 					}
 				}
@@ -1300,11 +1810,12 @@ namespace th {
 
 					// phases left
 					{
-						char buf[3];
-						snprintf(buf, 3, "%d", data->phase_count - boss.phase_index - 1);
-						int x = 0;
+						//char buf[3];
+						//stbsp_snprintf(buf, 3, "%2d", data->phase_count - boss.phase_index - 1);
+						char buf[2] = {'0' + data->phase_count - boss.phase_index - 1, 0};
+						int x = 8;
 						int y = 0;
-						DrawText(renderer, &game.assets.fntMain, buf, x, y);
+						DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y);
 					}
 
 					// healthbar
@@ -1316,23 +1827,60 @@ namespace th {
 						int reduced_w = (int) ((float)healthbar_w * (boss.hp / phase->hp));
 						{
 							SDL_Rect rect{healthbar_x, healthbar_y + 1, reduced_w, healthbar_h};
-							SDL_SetRenderDrawColor(renderer, 130, 130, 130, 255);
+							SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 							SDL_RenderFillRect(renderer, &rect);
 						}
 						{
 							SDL_Rect rect{healthbar_x, healthbar_y, reduced_w, healthbar_h};
-							SDL_SetRenderDrawColor(renderer, 245, 245, 245, 255);
+							SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 							SDL_RenderFillRect(renderer, &rect);
 						}
 					}
 
 					// timer
 					{
-						char buf[4];
-						snprintf(buf, 4, "%3d", (int)(boss.timer / 60.0f));
-						int x = PLAY_AREA_W - 3 * 15;
+						char buf[3];
+						stbsp_snprintf(buf, 3, "%d", (int)(boss.timer / 60.0f));
+						int x = PLAY_AREA_W - 2 * 15;
 						int y = 0;
-						DrawText(renderer, &game.assets.fntMain, buf, x, y);
+						if ((int)(boss.timer / 60.0f) < 10) x += 8;
+						DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y);
+					}
+
+					// boss name
+					{
+						SDL_Surface* surface = TTF_RenderText_Blended(game.assets.fntCirno, data->name, {255, 255, 255, 255});
+						SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+						{
+							SDL_SetTextureColorMod(texture, 0, 0, 0);
+							SDL_Rect dest{17, 17, surface->w, surface->h};
+							SDL_RenderCopy(renderer, texture, nullptr, &dest);
+						}
+						{
+							SDL_SetTextureColorMod(texture, 255, 255, 255);
+							SDL_Rect dest{16, 16, surface->w, surface->h};
+							SDL_RenderCopy(renderer, texture, nullptr, &dest);
+						}
+						SDL_DestroyTexture(texture);
+						SDL_FreeSurface(surface);
+					}
+
+					// phase name
+					if (phase->type == PHASE_SPELLCARD && boss.state != BossState::WaitingEnd) {
+						SDL_Surface* surface = TTF_RenderText_Blended(game.assets.fntCirno, phase->name, {255, 255, 255, 255});
+						SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+						{
+							SDL_SetTextureColorMod(texture, 0, 0, 0);
+							SDL_Rect dest{PLAY_AREA_W - 15 - surface->w, 17, surface->w, surface->h};
+							SDL_RenderCopy(renderer, texture, nullptr, &dest);
+						}
+						{
+							SDL_SetTextureColorMod(texture, 255, 255, 255);
+							SDL_Rect dest{PLAY_AREA_W - 16 - surface->w, 16, surface->w, surface->h};
+							SDL_RenderCopy(renderer, texture, nullptr, &dest);
+						}
+						SDL_DestroyTexture(texture);
+						SDL_FreeSurface(surface);
 					}
 				}
 			}
@@ -1353,11 +1901,14 @@ namespace th {
 	}
 
 	Player& Stage::CreatePlayer(bool from_death) {
+		CharacterData* character = GetCharacterData(game.player_character);
+
 		player = {};
 		player.id = 0 | (TYPE_PLAYER << TYPE_PART_SHIFT);
 		player.x = PLAYER_STARTING_X;
 		player.y = PLAYER_STARTING_Y;
-		player.sc.sprite = game.assets.GetSprite("ReimuIdle");
+		player.radius = character->radius;
+		player.sc.sprite = character->idle_spr;
 
 		player.iframes = PLAYER_RESPAWN_IFRAMES;
 		if (from_death) {
@@ -1453,19 +2004,8 @@ namespace th {
 		if (bullet.update_callback != LUA_REFNIL) luaL_unref(L, LUA_REGISTRYINDEX, bullet.update_callback);
 	}
 
-	void Stage::FreePlayer() {
-	
-	}
-
 	void Stage::FreeBoss() {
 		if (boss.coroutine != LUA_REFNIL) luaL_unref(L, LUA_REGISTRYINDEX, boss.coroutine);
-	}
-
-	float Stage::random_range(float a, float b) {
-		float r = (float)rEngine() / (float)ULONG_MAX;
-		float range = b - a;
-		r = a + fmodf(range * r, range);
-		return r;
 	}
 
 }

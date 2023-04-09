@@ -5,7 +5,7 @@
 namespace th {
 
 	static PlayerBullet& CreateReimuCard(Game* ctx, float x, float y, float dir, float dmg) {
-		PlayerBullet& result = ctx->game_scene->stage.CreatePlayerBullet();
+		PlayerBullet& result = ctx->game_scene->stage->CreatePlayerBullet();
 
 		result.x = x;
 		result.y = y;
@@ -20,7 +20,7 @@ namespace th {
 	}
 
 	static PlayerBullet& CreateReimuOrbShot(Game* ctx, float x, float y, float dir, float dmg) {
-		PlayerBullet& result = ctx->game_scene->stage.CreatePlayerBullet();
+		PlayerBullet& result = ctx->game_scene->stage->CreatePlayerBullet();
 
 		result.x = x;
 		result.y = y;
@@ -37,7 +37,7 @@ namespace th {
 	void ReimuShotType(Game* ctx, float delta) {
 		const unsigned char* key = SDL_GetKeyboardState(nullptr);
 
-		Player& player = ctx->game_scene->stage.player;
+		Player& player = ctx->game_scene->stage->player;
 
 		player.reimu.fire_timer += delta;
 		while (player.reimu.fire_timer >= 4.0f) {
@@ -83,7 +83,7 @@ namespace th {
 							int shot_count = 1;
 							float card_dmg = card_dps / shots_per_sec / (float)shot_count;
 
-							CreateReimuCard(ctx, player.x, player.y - 10.f, 90.f, card_dmg);
+							CreateReimuCard(ctx, player.x, player.y - 10.0f, 90.0f, card_dmg);
 							break;
 						}
 						case 1: {
@@ -174,11 +174,22 @@ namespace th {
 					}
 				}
 
+				Mix_Chunk* sound = ctx->assets.GetSound("se_plst00.wav");
+				StopSound(sound);
+				Mix_PlayChannel(-1, sound, 0);
+
 				player.reimu.fire_queue--;
 			}
 
 			player.reimu.fire_timer -= 4.0f;
 		}
+
+		//if (key[SDL_SCANCODE_Z] || player.reimu.fire_queue > 0) {
+		//	Mix_Chunk* sound = ctx->assets.GetSound("se_plst00.wav");
+		//	if (!SoundPlaying(sound)) {
+		//		Mix_PlayChannel(-1, sound, 0);
+		//	}
+		//}
 	}
 
 	void ReimuBomb(Game* ctx) {

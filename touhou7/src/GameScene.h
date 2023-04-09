@@ -2,6 +2,8 @@
 
 #include "Stage.h"
 
+#include <optional>
+
 #define PLAY_AREA_X 32
 #define PLAY_AREA_Y 16
 
@@ -20,7 +22,7 @@ namespace th {
 
 	class GameScene {
 	public:
-		GameScene(Game& game) : game(game), stage(game, *this) {}
+		GameScene(Game& game) : game(game) {}
 
 		bool Init();
 		void Quit();
@@ -28,9 +30,16 @@ namespace th {
 		void Update(float delta);
 		void Draw(SDL_Renderer* renderer, SDL_Texture* target, float delta);
 
+		void GetScore(int score);
+		void GetLives(int lives);
+		void GetBombs(int bombs);
+		void GetPower(int power);
+		void GetGraze(int graze);
+		void GetPoints(int points);
+
 		int stage_index = 0;
 		Stats stats{};
-		Stage stage;
+		std::optional<Stage> stage;
 
 	private:
 		Game& game;
@@ -38,6 +47,7 @@ namespace th {
 		void ResetStats();
 
 		SDL_Texture* play_area_surface = nullptr;
+		bool paused = false;
 	};
 
 }

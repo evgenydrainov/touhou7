@@ -3,28 +3,60 @@
 #include "Game.h"
 
 #include "common.h"
+#include "cpml.h"
+#include "external/stb_sprintf.h"
 
 namespace th {
 
+	static int GetNextPointLevel(int points) {
+		int res;
+		if (points >= 800) {
+			res = 800 + ((points - 800) / 200 + 1) * 200;
+		} else if (points >= 450) {
+			res = 800;
+		} else if (points >= 300) {
+			res = 450;
+		} else if (points >= 200) {
+			res = 300;
+		} else if (points >= 125) {
+			res = 200;
+		} else if (points >= 50) {
+			res = 125;
+		} else {
+			res = 50;
+		}
+		return res;
+	}
+
 	bool GameScene::Init() {
-		if (!(play_area_surface = SDL_CreateTexture(game.renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_TARGET, PLAY_AREA_W, PLAY_AREA_H))) {
+		if (!(play_area_surface = SDL_CreateTexture(game.renderer, TH_SURFACE_FORMAT, SDL_TEXTUREACCESS_TARGET, PLAY_AREA_W, PLAY_AREA_H))) {
 			TH_SHOW_ERROR("couldn't create play area surface : %s", SDL_GetError());
 			return false;
 		}
 
 		ResetStats();
 
-		stage.Init();
+		stage.emplace(game, *this);
+
+		stage->Init();
 
 		return true;
 	}
 
 	void GameScene::Quit() {
-		stage.Quit();
+		stage->Quit();
 	}
 
 	void GameScene::Update(float delta) {
-		stage.Update(delta);
+		if (!paused) {
+			if (!game.skip_frame) {
+				stage->Update(delta);
+			}
+		}
+
+		if (game.key_pressed[SDL_SCANCODE_ESCAPE]) {
+			paused ^= true;
+		}
 	}
 
 	void GameScene::ResetStats() {
@@ -34,7 +66,7 @@ namespace th {
 	}
 
 	void GameScene::Draw(SDL_Renderer* renderer, SDL_Texture* target, float delta) {
-		stage.Draw(renderer, play_area_surface, delta);
+		stage->Draw(renderer, play_area_surface, delta);
 
 		SDL_SetRenderTarget(renderer, target);
 		{
@@ -54,7 +86,16 @@ namespace th {
 				dest.y = PLAY_AREA_Y;
 				dest.w = PLAY_AREA_W;
 				dest.h = PLAY_AREA_H;
+				if (paused) {
+					SDL_SetTextureColorMod(play_area_surface, 128, 128, 128);
+				} else {
+					SDL_SetTextureColorMod(play_area_surface, 255, 255, 255);
+				}
 				SDL_RenderCopy(renderer, play_area_surface, nullptr, &dest);
+
+				if (paused) {
+					DrawTextBitmap(renderer, game.assets.fntMain, "PAUSED", PLAY_AREA_X + (PLAY_AREA_W - (6 * 15)) / 2, PLAY_AREA_Y + (PLAY_AREA_H - 16) / 2);
+				}
 			}
 
 			// GUI
@@ -75,14 +116,14 @@ namespace th {
 				// hiscore
 				{
 					char buf[10];
-					snprintf(buf, 10, "%09d", 0);
-					DrawText(renderer, &game.assets.fntMain, buf, x, y);
+					stbsp_snprintf(buf, 10, "%09d", 0);
+					DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y);
 				}
 				// score
 				{
 					char buf[10];
-					snprintf(buf, 10, "%09d", stats.score);
-					DrawText(renderer, &game.assets.fntMain, buf, x, y + 16);
+					stbsp_snprintf(buf, 10, "%09d", stats.score);
+					DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y + 16);
 				}
 				// lives
 				{
@@ -112,25 +153,24 @@ namespace th {
 					SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
 					SDL_RenderFillRect(renderer, &rect);
 
-					char buf[4];
-					if (stats.power >= MAX_POWER) {
-						strncpy_s(buf, 4, "MAX", 3);
-					} else {
-						snprintf(buf, 4, "%d", stats.power);
+					char buf[4] = "MAX";
+					if (stats.power < MAX_POWER) {
+						stbsp_snprintf(buf, 4, "%d", stats.power);
 					}
-					DrawText(renderer, &game.assets.fntMain, buf, rect.x, rect.y);
+					DrawTextBitmap(renderer, game.assets.fntMain, buf, rect.x, rect.y);
 				}
 				// graze
 				{
 					char buf[10];
-					snprintf(buf, 10, "%d", stats.graze);
-					DrawText(renderer, &game.assets.fntMain, buf, x, y + 7 * 16);
+					stbsp_snprintf(buf, 10, "%d", stats.graze);
+					DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y + 7 * 16);
 				}
 				// points
 				{
 					char buf[10];
-					snprintf(buf, 10, "%d/%d", stats.points, 0);
-					DrawText(renderer, &game.assets.fntMain, buf, x, y + 8 * 16);
+					int next = GetNextPointLevel(stats.points);
+					stbsp_snprintf(buf, 10, "%d/%d", stats.points, next);
+					DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y + 8 * 16);
 				}
 			}
 
@@ -145,8 +185,95 @@ namespace th {
 				dest.h = 8 * 16;
 				SDL_RenderCopy(renderer, texture, nullptr, &dest);
 			}
+
+			// bottom enemy label
+			if (stage->boss_exists) {
+				SpriteData* sprite = game.assets.GetSprite("EnemyLabel");
+				float x = (float)PLAY_AREA_X + std::clamp(stage->boss.x, (float)sprite->width / 2.0f, (float)PLAY_AREA_W - (float)sprite->width / 2.0f);
+				float y = (float)PLAY_AREA_Y + (float)PLAY_AREA_H;
+				DrawSprite(renderer, sprite, 0, x, y);
+			}
+
+			// DEBUG
+			{
+				int x = PLAY_AREA_X + PLAY_AREA_W + 16;
+				int y = PLAY_AREA_Y + 11 * 16;
+				char buf[100];
+				stbsp_snprintf(buf, 100, "ID%d", stage->next_id);
+				DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y);
+			}
 		}
-		SDL_SetRenderTarget(renderer, nullptr);
+	}
+
+	void GameScene::GetScore(int score) {
+		stats.score += score;
+	}
+
+	void GameScene::GetLives(int lives) {
+		while (lives--) {
+			if (stats.lives < 8) {
+				stats.lives++;
+
+				Mix_Chunk* sound = game.assets.GetSound("se_extend.wav");
+				StopSound(sound);
+				Mix_PlayChannel(-1, sound, 0);
+			} else {
+				GetBombs(1);
+			}
+		}
+	}
+
+	void GameScene::GetBombs(int bombs) {
+		while (bombs--) {
+			if (stats.bombs < 8) {
+				stats.bombs++;
+			}
+		}
+	}
+
+	void GameScene::GetPower(int power) {
+		while (power--) {
+			if (stats.power < 128) {
+				stats.power++;
+				switch (stats.power) {
+					case 8:
+					case 16:
+					case 32:
+					case 48:
+					case 64:
+					case 80:
+					case 96:
+					case 128: {
+						Mix_Chunk* sound = game.assets.GetSound("se_powerup.wav");
+						StopSound(sound);
+						Mix_PlayChannel(-1, sound, 0);
+					}
+				}
+			}
+		}
+	}
+
+	void GameScene::GetGraze(int graze) {
+		stats.graze += graze;
+	}
+
+	void GameScene::GetPoints(int points) {
+		while (points--) {
+			stats.points++;
+			if (stats.points >= 800) {
+				if (stats.points % 200 == 0) {
+					GetLives(1);
+				}
+			} else {
+				switch (stats.points) {
+					case 50:
+					case 125:
+					case 200:
+					case 300:
+					case 450: GetLives(1);
+				}
+			}
+		}
 	}
 
 }

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "cpml.h"
+#include "external/stb_sprintf.h"
 
 #include <SDL_image.h>
 
@@ -9,20 +10,15 @@
 
 namespace th {
 
-	StageData stage_data[STAGE_COUNT]{};
-	BulletData bullet_data[BULLET_TYPE_COUNT]{};
-	CharacterData character_data[CHARACTER_COUNT]{};
-	BossData boss_data[BOSS_TYPE_COUNT]{};
-
 	Game* Game::_instance = nullptr;
 
 	bool Game::Init() {
-		if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+		if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) != 0) {
 			TH_SHOW_ERROR("SDL_Init failed : %s", SDL_GetError());
 			return false;
 		}
 
-		if (!(window = SDL_CreateWindow("touhou7", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GAME_W, GAME_H, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE))) {
+		if (!(window = SDL_CreateWindow("touhou7", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GAME_W, GAME_H, SDL_WINDOW_SHOWN))) {
 			TH_SHOW_ERROR("SDL_CreateWindow failed : %s", SDL_GetError());
 			return false;
 		}
@@ -32,30 +28,38 @@ namespace th {
 			return false;
 		}
 
-		SDL_RenderSetLogicalSize(renderer, GAME_W, GAME_H);
-
-		if (!(game_surface = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_TARGET, GAME_W, GAME_H))) {
+		if (!(game_surface = SDL_CreateTexture(renderer, TH_SURFACE_FORMAT, SDL_TEXTUREACCESS_TARGET, GAME_W, GAME_H))) {
 			TH_SHOW_ERROR("couldn't create game surface : %s", SDL_GetError());
 			return false;
 		}
+
+		SDL_RenderSetLogicalSize(renderer, 0, 0);
+
+		up_surface = SDL_CreateTexture(renderer, TH_SURFACE_FORMAT, SDL_TEXTUREACCESS_TARGET, GAME_W, GAME_H);
+		SDL_SetTextureScaleMode(up_surface, SDL_ScaleModeLinear);
 
 		if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
 			TH_SHOW_ERROR("IMG_Init failed : %s", IMG_GetError());
 			return false;
 		}
 
-		assets.LoadAssets();
+		if (!(Mix_Init(MIX_INIT_MP3) & MIX_INIT_MP3)) {
+			TH_SHOW_ERROR("Mix_Init failed : %s", Mix_GetError());
+			return false;
+		}
+
+		Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 2048);
+		Mix_MasterVolume((int)(0.00f * (float)MIX_MAX_VOLUME));
+
+		TTF_Init();
+
+		assets.LoadAssets(renderer);
 
 		FillDataTables();
 
 		next_scene = TITLE_SCENE;
 
-		//SDL_DisplayMode m;
-		//m.w = 1920;
-		//m.h = 1080;
-		//m.refresh_rate = 75;
-		//SDL_SetWindowDisplayMode(window, &m);
-		//SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+		SetWindowMode(0);
 
 		return true;
 	}
@@ -75,12 +79,16 @@ namespace th {
 
 		assets.UnloadAssets();
 
+		TTF_Quit();
+
+		Mix_CloseAudio();
+		Mix_Quit();
+
 		IMG_Quit();
 
+		SDL_DestroyTexture(up_surface);
 		SDL_DestroyTexture(game_surface);
-
 		SDL_DestroyRenderer(renderer);
-
 		SDL_DestroyWindow(window);
 
 		SDL_Quit();
@@ -97,7 +105,12 @@ namespace th {
 			//std::cout << SDL_GetPerformanceCounter() << std::endl;
 			//std::cout << SDL_GetPerformanceFrequency() << std::endl;
 
+			//std::cout << Mix_GetChunk(0) << std::endl;
+			//std::cout << Mix_Playing(0) << std::endl;
+
 			memset(&key_pressed, 0, sizeof(key_pressed));
+
+			skip_frame = frame_advance;
 
 			for (SDL_Event ev; SDL_PollEvent(&ev);) {
 				switch (ev.type) {
@@ -105,6 +118,7 @@ namespace th {
 						running = false;
 						break;
 					}
+
 					case SDL_KEYDOWN: {
 						SDL_Scancode scancode = ev.key.keysym.scancode;
 
@@ -112,9 +126,31 @@ namespace th {
 							key_pressed[scancode] = true;
 						}
 
-						if (scancode == SDL_SCANCODE_F2) {
-							running = false;
-							restart = true;
+						switch (scancode) {
+							case SDL_SCANCODE_F4: {
+								if (ev.key.keysym.mod == 0) {
+									SetWindowMode(window_mode + 1);
+								}
+								break;
+							}
+#ifdef TH_DEBUG
+							case SDL_SCANCODE_F2: {
+								running = false;
+								restart = true;
+								break;
+							}
+
+							case SDL_SCANCODE_F5: {
+								frame_advance = true;
+								skip_frame = false;
+								break;
+							}
+
+							case SDL_SCANCODE_F6: {
+								frame_advance = false;
+								break;
+							}
+#endif
 						}
 						break;
 					}
@@ -128,8 +164,8 @@ namespace th {
 			Draw(delta);
 
 			double current_time = (double)SDL_GetPerformanceCounter() / (double)SDL_GetPerformanceFrequency();
-			//std::cout << 1.0 / (current_time - prev_time) << std::endl;
 			fps = 1.0 / (current_time - prev_time);
+			//std::cout << (current_time - prev_time) * 1000.0 << std::endl;
 			prev_time = current_time;
 
 			double time_left = frame_end_time - current_time;
@@ -178,6 +214,8 @@ namespace th {
 			int s = next_scene;
 			next_scene = 0;
 
+			random.seed();
+
 			static_assert(LAST_SCENE == 3);
 			switch (s) {
 				case GAME_SCENE: {
@@ -207,112 +245,53 @@ namespace th {
 			}
 		}
 
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-		SDL_RenderClear(renderer);
+		{
+			char buf[11];
+			stbsp_snprintf(buf, 11, "%7.2ffps", fps);
+			DrawTextBitmap(renderer, assets.fntMain, buf, 30 * 16, 29 * 16);
+		}
 
+		int window_w;
+		int window_h;
+		SDL_GetWindowSize(window, &window_w, &window_h);
+		int scale = std::min(window_w / GAME_W, window_h / GAME_H);
+		int up_w = GAME_W * scale;
+		int up_h = GAME_H * scale;
+		int current_w;
+		int current_h;
+		SDL_QueryTexture(up_surface, nullptr, nullptr, &current_w, &current_h);
+		if (current_w != up_w || current_h != up_h) {
+			SDL_DestroyTexture(up_surface);
+			up_surface = SDL_CreateTexture(renderer, TH_SURFACE_FORMAT, SDL_TEXTUREACCESS_TARGET, up_w, up_h);
+			SDL_SetTextureScaleMode(up_surface, SDL_ScaleModeLinear);
+		}
+
+		SDL_SetRenderTarget(renderer, up_surface);
 		SDL_RenderCopy(renderer, game_surface, nullptr, nullptr);
 
-		{
-			char buf[10];
-			snprintf(buf, 10, "%6.2ffps", fps);
-			DrawText(renderer, &assets.fntMain, buf, 31 * 16, 29 * 16);
-		}
+		SDL_SetRenderTarget(renderer, nullptr);
+		SDL_RenderCopy(renderer, up_surface, nullptr, nullptr);
 
 		SDL_RenderPresent(renderer);
 	}
 
-	void ReimuShotType(Game* ctx, float delta);
-	void ReimuBomb(Game* ctx);
-
-	void Game::FillDataTables() {
-		static_assert(CHARACTER_COUNT == 1);
-
-		character_data[CHARACTER_REIMU].name           = "Reimu Hakurei";
-		character_data[CHARACTER_REIMU].move_spd       = 3.75f;
-		character_data[CHARACTER_REIMU].focus_spd      = 1.6f;
-		character_data[CHARACTER_REIMU].radius         = 2.0f;
-		character_data[CHARACTER_REIMU].graze_radius   = 16.0f;
-		character_data[CHARACTER_REIMU].deathbomb_time = 15.0f;
-		character_data[CHARACTER_REIMU].starting_bombs = 2;
-		character_data[CHARACTER_REIMU].shot_type      = ReimuShotType;
-		character_data[CHARACTER_REIMU].bomb           = ReimuBomb;
-		character_data[CHARACTER_REIMU].idle_spr       = assets.GetSprite("ReimuIdle");
-		character_data[CHARACTER_REIMU].turn_spr       = assets.GetSprite("ReimuTurn");
-
-		static_assert(BULLET_TYPE_COUNT == 7);
-
-		bullet_data[0].sprite = assets.GetSprite("Bullet0");
-		bullet_data[1].sprite = assets.GetSprite("Bullet1");
-		bullet_data[2].sprite = assets.GetSprite("Bullet2");
-		bullet_data[3].sprite = assets.GetSprite("Bullet3");
-		bullet_data[4].sprite = assets.GetSprite("Bullet4");
-		bullet_data[5].sprite = assets.GetSprite("Bullet5");
-		bullet_data[6].sprite = assets.GetSprite("Bullet6");
-
-		bullet_data[0].radius = 3.0f;
-		bullet_data[1].radius = 3.0f;
-		bullet_data[2].radius = 4.0f;
-		bullet_data[3].radius = 2.0f;
-		bullet_data[4].radius = 2.0f;
-		bullet_data[5].radius = 2.0f;
-		bullet_data[6].radius = 2.0f;
-
-		bullet_data[0].rotate = true;
-		bullet_data[1].rotate = false;
-		bullet_data[2].rotate = false;
-		bullet_data[3].rotate = true;
-		bullet_data[4].rotate = true;
-		bullet_data[5].rotate = true;
-		bullet_data[6].rotate = false;
-
-		static_assert(STAGE_COUNT == 1);
-
-		stage_data[0].script = "Stage1_Script";
-
-		static_assert(BOSS_TYPE_COUNT == 2);
-
-		boss_data[0].name        = "Daiyousei";
-		boss_data[0].phase_count = 1;
-		boss_data[0].sprite      = assets.GetSprite("Daiyousei");
-		boss_data[0].type        = BOSS_MIDBOSS;
-
-		boss_data[0].phase_data[0].hp     = 1000.0f;
-		boss_data[0].phase_data[0].time   = 31.0f * 60.0f;
-		boss_data[0].phase_data[0].type   = PHASE_NONSPELL;
-		boss_data[0].phase_data[0].script = "Daiyousei_Nonspell1";
-
-		boss_data[1].name = "Cirno";
-		boss_data[1].phase_count = 5;
-		boss_data[1].sprite = assets.GetSprite("CirnoIdle");
-		boss_data[1].type = BOSS_BOSS;
-
-		boss_data[1].phase_data[0].hp     = 1500.0f;
-		boss_data[1].phase_data[0].time   = 25.0f * 60.0f;
-		boss_data[1].phase_data[0].type   = PHASE_NONSPELL;
-		boss_data[1].phase_data[0].script = "Cirno_Nonspell1";
-
-		boss_data[1].phase_data[1].hp     = 1500.0f;
-		boss_data[1].phase_data[1].time   = 30.0f * 60.0f;
-		boss_data[1].phase_data[1].type   = PHASE_SPELLCARD;
-		boss_data[1].phase_data[1].script = "Cirno_IcicleFall";
-		boss_data[1].phase_data[1].name   = "Ice Sign \"Icicle Fall\"";
-
-		boss_data[1].phase_data[2].hp     = 1500.0f;
-		boss_data[1].phase_data[2].time   = 50.0f * 60.0f;
-		boss_data[1].phase_data[2].type   = PHASE_NONSPELL;
-		boss_data[1].phase_data[2].script = "Cirno_Nonspell2";
-
-		boss_data[1].phase_data[3].hp     = 1500.0f;
-		boss_data[1].phase_data[3].time   = 40.0f * 60.0f;
-		boss_data[1].phase_data[3].type   = PHASE_SPELLCARD;
-		boss_data[1].phase_data[3].script = "Cirno_PerfectFreeze";
-		boss_data[1].phase_data[3].name   = "Freeze Sign \"Perfect Freeze\"";
-
-		boss_data[1].phase_data[4].hp     = 1500.0f;
-		boss_data[1].phase_data[4].time   = 33.0f * 60.0f;
-		boss_data[1].phase_data[4].type   = PHASE_SPELLCARD;
-		boss_data[1].phase_data[4].script = "Cirno_DiamondBlizzard";
-		boss_data[1].phase_data[4].name   = "Snow Sign \"Diamond Blizzard\"";
+	void Game::SetWindowMode(int mode) {
+		SDL_DisplayMode desktop;
+		SDL_GetDesktopDisplayMode(0, &desktop);
+		int max_scale = std::min((desktop.w - 1) / GAME_W, (desktop.h - 1) / GAME_H);
+		window_mode = cpml::wrap(mode, max_scale + 1);
+		if (window_mode == max_scale) {
+			SDL_SetWindowDisplayMode(window, &desktop);
+			//SDL_DisplayMode m{0, 640, 480, 60};
+			//SDL_SetWindowDisplayMode(window, &m);
+			SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+			SDL_ShowCursor(SDL_DISABLE);
+		} else {
+			SDL_SetWindowSize(window, GAME_W * (window_mode + 1), GAME_H * (window_mode + 1));
+			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+			SDL_SetWindowFullscreen(window, 0);
+			SDL_ShowCursor(SDL_ENABLE);
+		}
 	}
 
 	StageData* GetStageData(int stage_index) {

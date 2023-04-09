@@ -15,7 +15,7 @@
 			TH_LOG_ERROR(fmt, __VA_ARGS__);													\
 		} else {																			\
 			char* buf = new char[1000];														\
-			snprintf(buf, 1000, __FILE__ ":" TH_LINE_STRING ": " fmt, __VA_ARGS__);			\
+			stbsp_snprintf(buf, 1000, __FILE__ ":" TH_LINE_STRING ": " fmt, __VA_ARGS__);	\
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ERROR", buf, 0);				\
 			delete[] buf;																	\
 		}																					\

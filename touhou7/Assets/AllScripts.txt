@@ -5,3 +5,5 @@
 luatouhou.lua
 luastage1.lua
 luacirno.lua
+luateststage.lua
+luarumia.lua

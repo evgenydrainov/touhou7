@@ -29,12 +29,20 @@ extern "C" int main(int argc, char* argv[]) {
 	}
 #endif
 
+	int result = 0;
+
 	for (;;) {
 		th::Game game;
 
-		game.Init();
-
-		game.Run();
+		if (game.Init()) {
+			if (game.Run()) {
+				result = 0;
+			} else {
+				result = 1;
+			}
+		} else {
+			result = 1;
+		}
 
 		game.Shutdown();
 
@@ -43,5 +51,5 @@ extern "C" int main(int argc, char* argv[]) {
 		}
 	}
 
-	return 0;
+	return result;
 }

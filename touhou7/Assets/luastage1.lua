@@ -32,7 +32,7 @@ local spawn_spinner = function()
 	end;
 
 	local OnUpdate = function(id)
-		SetRotation(id, GetRotation(id) + 10);
+		SetAngle(id, GetAngle(id) + 10);
 	end;
 
 	local x = random(0, PLAY_AREA_W);
@@ -42,6 +42,8 @@ end;
 
 function Stage1_Script(id)
 	-- print_table(_ENV);
+
+	-- print(collectgarbage("count"));
 
 	wait(60);
 
@@ -112,6 +114,8 @@ function Daiyousei_Nonspell1(id)
 		SetY(id, y);
 	end;
 
+	--local t = {GetX(id), GetY(id), 3, TargetDir(id), 0, BULLET_KUNAI, 2};
+
 	while (true) do
 		for j = 1, 2 do
 			local n = 48;
@@ -131,11 +135,15 @@ function Daiyousei_Nonspell1(id)
 				local a = lerp(1.1, 1.5, i / n);
 				Shoot{x, y, spd,     dir, 0, BULLET_KUNAI, color};
 				Shoot{x, y, spd * a, dir, 0, BULLET_KUNAI, color};
+
 				-- Shoot{x, y, 0, dir, 0, BULLET_KUNAI, color, BulletTransformation(5, 1, 30)};
 				-- Shoot{x, y, 0, dir, 0, BULLET_KUNAI, color, function(id)
 				-- 	BulletTransformation(10, 2, 15)(id);
 				-- 	SetDir(id, TargetDir(id));
 				-- end};
+
+				-- Shoot(t);
+
 				wait(1);
 			end
 

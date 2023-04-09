@@ -16,7 +16,7 @@ namespace th {
 		return -(double)angle;
 	}
 
-	void DrawSprite(SDL_Renderer* renderer, const SpriteData* sprite, int frame_index, float x, float y, float angle, float xscale, float yscale, SDL_Color color) {
+	void DrawSprite(SDL_Renderer* renderer, SpriteData* sprite, int frame_index, float x, float y, float angle, float xscale, float yscale, SDL_Color color) {
 		if (!sprite) return;
 		if (!sprite->texture) return;
 
@@ -46,6 +46,12 @@ namespace th {
 		dest.w = (int) ((float)w * fabsf(xscale));
 		dest.h = (int) ((float)h * fabsf(yscale));
 
+		//SDL_FRect dest;
+		//dest.x = x - (float)xorigin * fabsf(xscale);
+		//dest.y = y - (float)yorigin * fabsf(yscale);
+		//dest.w = (float)w * fabsf(xscale);
+		//dest.h = (float)h * fabsf(yscale);
+
 		int flip = SDL_FLIP_NONE;
 		if (xscale < 0.0f) flip |= SDL_FLIP_HORIZONTAL;
 		if (yscale < 0.0f) flip |= SDL_FLIP_VERTICAL;
@@ -54,12 +60,17 @@ namespace th {
 		center.x = (int) ((float)xorigin * fabsf(xscale));
 		center.y = (int) ((float)yorigin * fabsf(yscale));
 
+		//SDL_FPoint center;
+		//center.x = (float)xorigin * fabsf(xscale);
+		//center.y = (float)yorigin * fabsf(yscale);
+
 		SDL_SetTextureColorMod(sprite->texture, color.r, color.g, color.b);
 		SDL_SetTextureAlphaMod(sprite->texture, color.a);
+		//SDL_SetTextureScaleMode(sprite->texture, SDL_ScaleModeLinear);
 		SDL_RenderCopyEx(renderer, sprite->texture, &src, &dest, AngleToSDL(angle), &center, (SDL_RendererFlip)flip);
 	}
 
-	void DrawText(SDL_Renderer* renderer, const SpriteFont* font, const char* text, int x, int y) {
+	void DrawTextBitmap(SDL_Renderer* renderer, SpriteFont* font, const char* text, int x, int y) {
 		if (!renderer) return;
 		if (!font) return;
 		if (!text) return;
@@ -93,14 +104,55 @@ namespace th {
 		}
 	}
 
-	bool Assets::LoadAssets() {
+	void StopSound(Mix_Chunk* sound) {
+		for (int i = 0; i < MIX_CHANNELS; i++) {
+			if (Mix_Playing(i)) {
+				if (Mix_GetChunk(i) == sound) {
+					Mix_HaltChannel(i);
+				}
+			}
+		}
+	}
+
+	bool SoundPlaying(Mix_Chunk* sound) {
+		for (int i = 0; i < MIX_CHANNELS; i++) {
+			if (Mix_Playing(i)) {
+				if (Mix_GetChunk(i) == sound) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	template <typename F>
+	static bool ReadTextFile(const std::string& assetsFolder, const std::string& fname, const F& f) {
+		std::ifstream file(assetsFolder + fname);
+
+		if (!file) {
+			TH_LOG_ERROR("couldn't open %s", fname.c_str());
+			return false;
+		}
+
+		for (std::string line; std::getline(file, line);) {
+			if (line.empty()) continue;
+
+			if (line[0] == ';') continue;
+
+			f(line);
+		}
+
+		return true;
+	}
+
+	bool Assets::LoadAssets(SDL_Renderer* renderer) {
 		bool result = true;
 
 		// default texture & sprite
 		{
 			SDL_Surface* surface = SDL_CreateRGBSurface(0, 16, 16, 24, 0, 0, 0, 0);
 			SDL_FillRect(surface, nullptr, 0xFFFFFFFF);
-			default_texture = SDL_CreateTextureFromSurface(game.renderer, surface);
+			default_texture = SDL_CreateTextureFromSurface(renderer, surface);
 			SDL_FreeSurface(surface);
 			textures["<default>"] = default_texture;
 
@@ -109,101 +161,102 @@ namespace th {
 		}
 
 		// textures
-		{
-			std::ifstream texturesFile(assetsFolder + "AllTextures.txt");
 
-			for (std::string line; std::getline(texturesFile, line);) {
-				if (line.empty()) continue;
-
-				if (line[0] == ';') continue;
-
-				if (!LoadTextureIfNotLoaded(line)) {
-					result = false;
-					continue;
-				}
+		ReadTextFile(assetsFolder, "AllTextures.txt", [this, renderer, &result](const std::string& line) {
+			if (!LoadTextureIfNotLoaded(line, renderer)) {
+				result = false;
 			}
-		}
+		});
 
 		// sprites
-		{
-			std::ifstream spritesFile(assetsFolder + "AllSprites.txt");
 
-			for (std::string line; std::getline(spritesFile, line);) {
-				if (line.empty()) continue;
+		ReadTextFile(assetsFolder, "AllSprites.txt", [this, renderer, &result](const std::string& line) {
+			std::istringstream stream(line);
 
-				if (line[0] == ';') continue;
+			std::string name;
+			std::string spritesheet;
+			int u = 0;
+			int v = 0;
+			int width = 0;
+			int height = 0;
+			int xorigin = 0;
+			int yorigin = 0;
+			int frame_count = 0;
+			int frames_in_row = 0;
+			float anim_spd = 0.0f;
+			int loop_frame = 0;
 
-				std::istringstream stream(line);
+			stream >> name >> spritesheet >> u >> v >> width >> height >> xorigin >> yorigin >> frame_count >> frames_in_row >> anim_spd >> loop_frame;
 
-				std::string name;
-				std::string spritesheet;
-				int u = 0;
-				int v = 0;
-				int width = 0;
-				int height = 0;
-				int xorigin = 0;
-				int yorigin = 0;
-				int frame_count = 0;
-				int frames_in_row = 0;
-				float anim_spd = 0.0f;
-				int loop_frame = 0;
+			frame_count = (frame_count > 0) ? frame_count : 1;
+			frames_in_row = (frames_in_row > 0) ? frames_in_row : frame_count;
 
-				stream >> name >> spritesheet >> u >> v >> width >> height >> xorigin >> yorigin >> frame_count >> frames_in_row >> anim_spd >> loop_frame;
-
-				frame_count = (frame_count > 0) ? frame_count : 1;
-				frames_in_row = (frames_in_row > 0) ? frames_in_row : frame_count;
-
-				if (!LoadTextureIfNotLoaded(spritesheet)) {
-					result = false;
-					continue;
-				}
-
-				SDL_Texture* texture = GetTexture(spritesheet);
-
-				auto lookup = sprites.find(name);
-				if (lookup == sprites.end()) {
-					SpriteData* sprite = new SpriteData{texture, u, v, width, height, xorigin, yorigin, frame_count, frames_in_row, anim_spd, loop_frame};
-
-					sprites.emplace(name, sprite);
-				}
+			if (!LoadTextureIfNotLoaded(spritesheet, renderer)) {
+				result = false;
+				return;
 			}
-		}
+
+			SDL_Texture* texture = GetTexture(spritesheet);
+
+			auto lookup = sprites.find(name);
+			if (lookup == sprites.end()) {
+				SpriteData* sprite = new SpriteData{texture, u, v, width, height, xorigin, yorigin, frame_count, frames_in_row, anim_spd, loop_frame};
+
+				sprites.emplace(name, sprite);
+			}
+		});
 
 		// lua scripts
-		{
-			std::ifstream scriptsFile(assetsFolder + "AllScripts.txt");
 
-			for (std::string line; std::getline(scriptsFile, line);) {
-				if (line.empty()) {
-					continue;
-				}
-
-				if (line[0] == ';') {
-					continue;
-				}
-
-				if (!LoadScriptIfNotLoaded(line)) {
-					result = false;
-					continue;
-				}
+		ReadTextFile(assetsFolder, "AllScripts.txt", [this, &result](const std::string& line) {
+			if (!LoadScriptIfNotLoaded(line)) {
+				result = false;
+				return;
 			}
-		}
+		});
 
 		// gui font (hard coded)
 		{
-			fntMain.texture = GetTexture("font.png");
-			fntMain.first = 16;
-			fntMain.width = 15; // blasphemy
-			fntMain.height = 15;
-			fntMain.sep_x = 16;
-			fntMain.sep_y = 16;
-			fntMain.frames_in_row = 16;
+			fntMain = new SpriteFont{GetTexture("font.png"), 16, 15, 15, 16, 16, 16};
 		}
+
+		{
+			std::string fullPath = assetsFolder + "Cirno.ttf";
+
+			fntCirno = TTF_OpenFont(fullPath.c_str(), 18);
+		}
+
+		// sounds
+
+		ReadTextFile(assetsFolder, "AllSounds.txt", [this, &result](const std::string& line) {
+			std::istringstream stream(line);
+
+			std::string fname;
+			float volume = 1.0f;
+
+			stream >> fname >> volume;
+
+			if (!LoadSoundIfNotLoaded(fname)) {
+				result = false;
+				return;
+			}
+
+			Mix_Chunk* sound = GetSound(fname);
+			Mix_VolumeChunk(sound, (int)(volume * (float)MIX_MAX_VOLUME));
+		});
 
 		return result;
 	}
 
 	void Assets::UnloadAssets() {
+		for (auto it = sounds.begin(); it != sounds.end(); ++it) {
+			Mix_FreeChunk(it->second);
+		}
+		sounds.clear();
+
+		TTF_CloseFont(fntCirno);
+		delete fntMain;
+
 		for (auto it = sprites.begin(); it != sprites.end(); ++it) {
 			delete it->second;
 		}
@@ -215,7 +268,7 @@ namespace th {
 		textures.clear();
 	}
 
-	SpriteData* Assets::GetSprite(const std::string& name) const {
+	SpriteData* Assets::GetSprite(const std::string& name) {
 		auto lookup = sprites.find(name);
 		if (lookup != sprites.end()) {
 			return lookup->second;
@@ -223,7 +276,7 @@ namespace th {
 		return default_sprite;
 	}
 
-	SDL_Texture* Assets::GetTexture(const std::string& name) const {
+	SDL_Texture* Assets::GetTexture(const std::string& name) {
 		auto lookup = textures.find(name);
 		if (lookup != textures.end()) {
 			return lookup->second;
@@ -231,15 +284,23 @@ namespace th {
 		return default_texture;
 	}
 
-	bool Assets::LoadTextureIfNotLoaded(const std::string& fname) {
+	Mix_Chunk* Assets::GetSound(const std::string& name) {
+		auto lookup = sounds.find(name);
+		if (lookup != sounds.end()) {
+			return lookup->second;
+		}
+		return nullptr;
+	}
+
+	bool Assets::LoadTextureIfNotLoaded(const std::string& fname, SDL_Renderer* renderer) {
 		auto lookup = textures.find(fname);
 		if (lookup == textures.end()) {
 			std::string fullPath = assetsFolder + fname;
 
 			SDL_Texture* texture;
 
-			if (!(texture = IMG_LoadTexture(game.renderer, fullPath.c_str()))) {
-				TH_LOG_ERROR("IMG_LoadTexture failed : %s", IMG_GetError());
+			if (!(texture = IMG_LoadTexture(renderer, fullPath.c_str()))) {
+				TH_LOG_ERROR("couldn't load texture %s: %s", fname.c_str(), IMG_GetError());
 				return false;
 			}
 
@@ -256,13 +317,13 @@ namespace th {
 
 			std::ifstream file(fullPath, std::ios::binary | std::ios::ate);
 			if (!file) {
-				TH_LOG_ERROR("couldn't load script %s", fname.c_str());
+				TH_LOG_ERROR("couldn't open script file %s", fname.c_str());
 				return false;
 			}
 
 			std::streamsize size = file.tellg();
 			if (size <= 0) {
-				TH_LOG_ERROR("couldn't load script %s", fname.c_str());
+				TH_LOG_ERROR("script file %s size is %lld", fname.c_str(), size);
 				return false;
 			}
 
@@ -272,6 +333,24 @@ namespace th {
 			file.read(buffer.data(), size);
 
 			scripts.emplace(fname, buffer);
+		}
+
+		return true;
+	}
+
+	bool Assets::LoadSoundIfNotLoaded(const std::string& fname) {
+		auto lookup = sounds.find(fname);
+		if (lookup == sounds.end()) {
+			std::string fullPath = assetsFolder + fname;
+
+			Mix_Chunk* chunk;
+
+			if (!(chunk = Mix_LoadWAV(fullPath.c_str()))) {
+				TH_LOG_ERROR("couldn't load sound %s: %s", fname.c_str(), Mix_GetError());
+				return false;
+			}
+
+			sounds.emplace(fname, chunk);
 		}
 
 		return true;

@@ -25,3 +25,5 @@ Enemy0          Enemies.png         416     384     32      32      16      16  
 Sidebar         Sidebar.png         32      704     64      144     0       0       1           0               0.00        0
 UI_Life         Sidebar.png         96      704     16      16      0       0       1           0               0.00        0
 UI_Bomb         Sidebar.png         112     704     16      16      0       0       1           0               0.00        0
+EnemyLabel      Fonts.png           16      256     48      16      24      0       1           0               0.00        0
+RumiaIdle       Enemies.png         832     16      32      48      16      24      1           0               0.00        0

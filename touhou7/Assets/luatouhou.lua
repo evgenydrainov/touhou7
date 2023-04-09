@@ -63,7 +63,7 @@ function ShootRadial(n, dir_diff, f)
 	local res = {};
 	for i = 0, n - 1 do
 		local mul = -(n - 1) / 2 + i;
-		local got = f();
+		local got = f(i);
 		if (type(got) == "table") then
 			for b in ivalues(got) do
 				SetDir(b, GetDir(b) + dir_diff * mul);
@@ -139,3 +139,18 @@ end
 
 BOSS_DAIYOUSEI	= 0;
 BOSS_CIRNO		= 1;
+BOSS_RUMIA		= 2;
+
+function Wander(id)
+	local target_x = random(32, PLAY_AREA_W-32)
+	local target_y = random(32, BOSS_STARTING_Y*2-32)
+	local x = GetX(id)
+	local y = GetY(id)
+	target_x = clamp(target_x, x-80, x+80)
+	target_y = clamp(target_y, y-80, y+80)
+	LaunchTowardsPoint(id, target_x, target_y, 0.01)
+end
+
+function GoBack(id)
+	LaunchTowardsPoint(id, BOSS_STARTING_X, BOSS_STARTING_Y, 0.02)
+end

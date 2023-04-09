@@ -1,6 +1,8 @@
 #pragma once
 
 #include <SDL.h>
+#include <SDL_mixer.h>
+#include <SDL_ttf.h>
 
 #include <unordered_map>
 #include <string>
@@ -33,35 +35,40 @@ namespace th {
 		int frames_in_row;
 	};
 
-	void DrawSprite(SDL_Renderer* renderer, const SpriteData* sprite, int frame_index, float x, float y, float angle = 0.0f, float xscale = 1.0f, float yscale = 1.0f, SDL_Color color = {255, 255, 255, 255});
+	void DrawSprite(SDL_Renderer* renderer, SpriteData* sprite, int frame_index, float x, float y, float angle = 0.0f, float xscale = 1.0f, float yscale = 1.0f, SDL_Color color = {255, 255, 255, 255});
 
-	void DrawText(SDL_Renderer* renderer, const SpriteFont* font, const char* text, int x, int y);
+	void DrawTextBitmap(SDL_Renderer* renderer, SpriteFont* font, const char* text, int x, int y);
+
+	void StopSound(Mix_Chunk* sound);
+
+	bool SoundPlaying(Mix_Chunk* sound);
 
 	class Assets {
 	public:
-		Assets(Game& game) : game(game) {}
-
-		bool LoadAssets();
+		bool LoadAssets(SDL_Renderer* renderer);
 		void UnloadAssets();
 
-		SpriteData* GetSprite(const std::string& name) const;
-		SDL_Texture* GetTexture(const std::string& name) const;
+		SpriteData* GetSprite(const std::string& name);
+		SDL_Texture* GetTexture(const std::string& name);
+		Mix_Chunk* GetSound(const std::string& name);
 
 		const std::unordered_map<std::string, std::vector<char>>& GetScripts() const { return scripts; }
 
-		SpriteFont fntMain{};
+		SpriteFont* fntMain = nullptr;
+		TTF_Font* fntCirno = nullptr;
 
 	private:
-		Game& game;
-
-		bool LoadTextureIfNotLoaded(const std::string& fname);
+		bool LoadTextureIfNotLoaded(const std::string& fname, SDL_Renderer* renderer);
 		bool LoadScriptIfNotLoaded(const std::string& fname);
+		bool LoadSoundIfNotLoaded(const std::string& fname);
 
 		std::string assetsFolder = "Assets/";
 
 		std::unordered_map<std::string, SDL_Texture*> textures;
 		std::unordered_map<std::string, SpriteData*> sprites; // todo: just use SpriteData, they won't be moved in memory
+															  // actual todo: replace this with a proper asset manager
 		std::unordered_map<std::string, std::vector<char>> scripts;
+		std::unordered_map<std::string, Mix_Chunk*> sounds;
 
 		SDL_Texture* default_texture = nullptr;
 		SpriteData* default_sprite = nullptr;

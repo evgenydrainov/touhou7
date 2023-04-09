@@ -35,6 +35,8 @@ namespace th {
 
 	struct Player {
 		instance_id id;
+		bool dead;
+
 		float x;
 		float y;
 		float hsp;
@@ -78,11 +80,14 @@ namespace th {
 	enum class ProjectileType : unsigned char {
 		Bullet,
 		Rect,
-		Lazer
+		Lazer,
+		SLazer
 	};
 
 	struct Bullet {
 		instance_id id;
+		bool dead;
+
 		float x;
 		float y;
 		float spd;
@@ -101,17 +106,22 @@ namespace th {
 				float target_length;
 				float lazer_time;
 				float lazer_timer;
+				float lazer_lifetime;
 			};
 		};
 
 		SpriteComponent sc;
 		float lifetime;
+		bool grazed;
+
 		int coroutine = LUA_REFNIL;
 		int update_callback = LUA_REFNIL;
 	};
 
 	struct Enemy {
 		instance_id id;
+		bool dead;
+
 		float x;
 		float y;
 		float spd;
@@ -119,8 +129,10 @@ namespace th {
 		float acc;
 		float radius;
 		SpriteComponent sc;
+		float angle;
 		float hp;
 		unsigned int drops;
+
 		int coroutine = LUA_REFNIL;
 		int update_callback = LUA_REFNIL;
 		int death_callback = LUA_REFNIL;
@@ -134,6 +146,8 @@ namespace th {
 
 	struct Boss {
 		instance_id id;
+		bool dead;
+
 		float x;
 		float y;
 		float spd;
@@ -147,8 +161,9 @@ namespace th {
 		float timer;
 		float wait_timer;
 		BossState state;
-		int coroutine = LUA_REFNIL;
 		float facing = 1.0f;
+
+		int coroutine = LUA_REFNIL;
 	};
 
 	enum {

@@ -1,0 +1,21 @@
+; filename volume
+
+se_select.wav           0.75
+se_ok.wav               0.75
+se_cancel.wav           0.75
+se_graze.wav            1.00
+se_pause.wav            1.00
+; player shot
+se_plst00.wav           1.00
+se_enemy_hit.wav        0.50
+se_pichuun.wav          0.75
+se_enemy_shoot.wav      0.25
+se_powerup.wav          1.00
+; 1up
+se_extend.wav           1.00
+se_item.wav             0.75
+se_lazer.wav            0.75
+se_enemy_die.wav        0.75
+se_boss_die.wav         0.75
+se_spellcard.wav        0.75
+se_timeout.wav          1.00

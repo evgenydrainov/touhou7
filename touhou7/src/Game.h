@@ -13,6 +13,8 @@
 
 #define MAX_POWER 128
 
+#define TH_SURFACE_FORMAT SDL_PIXELFORMAT_RGB24
+
 namespace th {
 
 	enum {
@@ -28,7 +30,7 @@ namespace th {
 
 	class Game {
 	public:
-		Game() : assets(*this) { _instance = this; }
+		Game() { _instance = this; }
 
 		static Game& GetInstance() { return *_instance; }
 
@@ -44,6 +46,7 @@ namespace th {
 		Options options{};
 		SDL_Renderer* renderer = nullptr;
 		Assets assets;
+		xorshf96 random;
 
 		static_assert(LAST_SCENE == 3);
 		std::variant<
@@ -65,19 +68,25 @@ namespace th {
 		bool skip_to_midboss = false;
 		bool skip_to_boss = false;
 
-		bool key_pressed[30]{};
+		bool key_pressed[70]{};
+
+		bool frame_advance = false;
+		bool skip_frame = false;
 
 	private:
 		static Game* _instance;
 
 		void FillDataTables();
+		void SetWindowMode(int mode);
 
 		SDL_Window* window = nullptr;
 		SDL_Texture* game_surface = nullptr;
+		SDL_Texture* up_surface = nullptr;
 
 		int next_scene = 0;
 
 		double fps = 0.0;
+		int window_mode = 0;
 	};
 
 	enum {
@@ -86,11 +95,11 @@ namespace th {
 	};
 
 	struct PhaseData {
-		const char* script;
 		float hp;
 		float time;
 		unsigned char type;
-		const char* name;
+		char script[40];
+		char name[40];
 	};
 
 	enum {
@@ -99,15 +108,20 @@ namespace th {
 	};
 
 	struct BossData {
-		const char* name;
-		PhaseData phase_data[25];
+		char name[40];
 		int phase_count;
 		SpriteData* sprite;
 		unsigned char type;
+		PhaseData phase_data[25];
 	};
 
 	struct StageData {
-		const char* script;
+		char script[40];
+
+		void (*init)(Game* ctx, SDL_Renderer* renderer, void* mem);
+		void (*quit)(Game* ctx, void* mem);
+		void (*update)(Game* ctx, void* mem, bool visible, float delta);
+		void (*draw)(Game* ctx, SDL_Renderer* renderer, void* mem, bool visible, float delta);
 	};
 
 	struct BulletData {
@@ -117,7 +131,7 @@ namespace th {
 	};
 
 	struct CharacterData {
-		const char* name;
+		char name[40];
 		float move_spd;
 		float focus_spd;
 		float radius;
@@ -139,7 +153,7 @@ namespace th {
 
 #define STAGE_COUNT 1
 #define BULLET_TYPE_COUNT 7
-#define BOSS_TYPE_COUNT 2
+#define BOSS_TYPE_COUNT 3
 
 	extern StageData stage_data[STAGE_COUNT];
 	extern BulletData bullet_data[BULLET_TYPE_COUNT];
