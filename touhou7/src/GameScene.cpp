@@ -196,11 +196,37 @@ namespace th {
 
 			// DEBUG
 			{
+				char buf[100];
+				stbsp_snprintf(
+					buf,
+					100,
+					"Next ID %d\n"
+					"Lua Mem %f\n"
+					"Bullets %d\n"
+					"Enemies %d",
+					stage->next_id,
+					(double)(lua_gc(stage->L, LUA_GCCOUNT) * 1024 + lua_gc(stage->L, LUA_GCCOUNTB)) / 1024.0,
+					(int)stage->bullets.size(),
+					(int)stage->enemies.size()
+				);
 				int x = PLAY_AREA_X + PLAY_AREA_W + 16;
 				int y = PLAY_AREA_Y + 11 * 16;
-				char buf[100];
-				stbsp_snprintf(buf, 100, "ID%d", stage->next_id);
-				DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y);
+				//DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y);
+
+				SDL_Surface* surface = TTF_RenderText_Blended_Wrapped(game.assets.fntCirno, buf, {255, 255, 255, 255}, 0);
+				SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+				{
+					SDL_SetTextureColorMod(texture, 0, 0, 0);
+					SDL_Rect dest{x + 1, y + 1, surface->w, surface->h};
+					SDL_RenderCopy(renderer, texture, nullptr, &dest);
+				}
+				{
+					SDL_SetTextureColorMod(texture, 255, 255, 255);
+					SDL_Rect dest{x, y, surface->w, surface->h};
+					SDL_RenderCopy(renderer, texture, nullptr, &dest);
+				}
+				SDL_DestroyTexture(texture);
+				SDL_FreeSurface(surface);
 			}
 		}
 	}

@@ -1287,8 +1287,6 @@ namespace th {
 		}
 
 		time += delta;
-
-		//std::cout << (double)(lua_gc(L, LUA_GCCOUNT) * 1024 + lua_gc(L, LUA_GCCOUNTB)) / 1024.0 << std::endl;
 	}
 
 	void Stage::UpdateSpriteComponent(SpriteComponent& sc, float delta) {
