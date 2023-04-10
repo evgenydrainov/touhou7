@@ -1,4 +1,4 @@
-function TestStage_Script1(id)
+function TestStage_Script(id)
 	print "test stage\n"
 	wait(120)
 
@@ -73,12 +73,4 @@ function TestStage_Script1(id)
 
 
 	print "tests ended"
-end
-
-function TestStage_Script(id)
-	wait(60)
-
-	CreateBoss{type=BOSS_RUMIA}
-
-	wait(60)
 end

@@ -3,5 +3,6 @@
 luatouhou.lua       -1
 luastage1.lua       0
 luacirno.lua        0
-luateststage.lua    0
-luarumia.lua        0
+luarumia.lua        1
+luastage2.lua       1
+luateststage.lua    100

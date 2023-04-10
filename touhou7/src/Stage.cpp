@@ -18,7 +18,7 @@ namespace th {
 		{
 			stage_memory = new unsigned char[100]{};
 
-			StageData* data = GetStageData(scene.stage_index);
+			StageData* data = GetStageData(game.stage_index);
 
 			if (data->init) {
 				(*data->init)(&game, game.renderer, stage_memory);
@@ -33,7 +33,7 @@ namespace th {
 		game.skip_to_boss = false;
 
 		{
-			StageData* data = GetStageData(scene.stage_index);
+			StageData* data = GetStageData(game.stage_index);
 			if (data->quit) {
 				(*data->quit)(&game, stage_memory);
 			}
@@ -511,7 +511,7 @@ namespace th {
 		}
 
 		{
-			StageData* stage = GetStageData(scene.stage_index);
+			StageData* stage = GetStageData(game.stage_index);
 			if (stage->update) {
 				(*stage->update)(&game, stage_memory, spellcard_bg_alpha < 1.0f, delta);
 			}
@@ -901,7 +901,7 @@ namespace th {
 
 			// stage bg
 			{
-				StageData* stage = GetStageData(scene.stage_index);
+				StageData* stage = GetStageData(game.stage_index);
 				if (stage->draw) {
 					(*stage->draw)(&game, renderer, stage_memory, spellcard_bg_alpha < 1.0f, delta);
 				}

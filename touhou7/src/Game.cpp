@@ -285,57 +285,6 @@ namespace th {
 		}
 	}
 
-	StageData* GetStageData(int stage_index) {
-		StageData* result;
-		if (0 <= stage_index && stage_index < STAGE_COUNT) {
-			result = &stage_data[stage_index];
-		} else {
-			result = &stage_data[0];
-		}
-		return result;
-	}
-
-	BulletData* GetBulletData(int type_index) {
-		BulletData* result;
-		if (0 <= type_index && type_index < BULLET_TYPE_COUNT) {
-			result = &bullet_data[type_index];
-		} else {
-			result = &bullet_data[0];
-		}
-		return result;
-	}
-
-	CharacterData* GetCharacterData(int character_index) {
-		CharacterData* result;
-		if (0 <= character_index && character_index < CHARACTER_COUNT) {
-			result = &character_data[character_index];
-		} else {
-			result = &character_data[0];
-		}
-		return result;
-	}
-
-	BossData* GetBossData(int type_index) {
-		BossData* result;
-		if (0 <= type_index && type_index < BOSS_TYPE_COUNT) {
-			result = &boss_data[type_index];
-		} else {
-			result = &boss_data[0];
-		}
-		return result;
-	}
-
-	PhaseData* GetPhaseData(BossData* boss_data, int phase_index) {
-		PhaseData* result;
-		if (!boss_data) {
-			boss_data = GetBossData(0);
-		}
-		if (0 <= phase_index && phase_index < boss_data->phase_count) {
-			result = &boss_data->phase_data[phase_index];
-		} else {
-			result = &boss_data->phase_data[0];
-		}
-		return result;
-	}
+	
 
 }

@@ -37,7 +37,6 @@ namespace th {
 		void GetGraze(int graze);
 		void GetPoints(int points);
 
-		int stage_index = 0;
 		Stats stats{};
 		std::optional<Stage> stage;
 

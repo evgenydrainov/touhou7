@@ -683,7 +683,7 @@ namespace th {
 			for (auto it = scripts.begin(); it != scripts.end(); ++it) {
 				ScriptData* script = it->second;
 
-				if (!(script->stage_index == scene.stage_index || script->stage_index == -1)) {
+				if (!(script->stage_index == game.stage_index || script->stage_index == -1)) {
 					continue;
 				}
 
@@ -706,7 +706,7 @@ namespace th {
 		}
 
 		{
-			StageData* data = GetStageData(scene.stage_index);
+			StageData* data = GetStageData(game.stage_index);
 
 			lua_getglobal(L, data->script);
 			coroutine = CreateCoroutine(L, L);

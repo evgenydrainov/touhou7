@@ -4,8 +4,6 @@
 #include "GameScene.h"
 #include "TitleScene.h"
 
-#include <SDL.h>
-
 #include <variant>
 
 #define GAME_W 640
@@ -62,13 +60,14 @@ namespace th {
 		};
 
 		int player_character = 0;
+		int stage_index = 0;
 
 		bool restart = false;
 
 		bool skip_to_midboss = false;
 		bool skip_to_boss = false;
 
-		bool key_pressed[70]{};
+		bool key_pressed[83]{};
 
 		bool frame_advance = false;
 		bool skip_frame = false;
@@ -152,7 +151,7 @@ namespace th {
 		CHARACTER_COUNT
 	};
 
-#define STAGE_COUNT 1
+#define STAGE_COUNT 2
 #define BULLET_TYPE_COUNT 7
 #define BOSS_TYPE_COUNT 3
 
