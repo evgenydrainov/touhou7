@@ -72,6 +72,8 @@ namespace th {
 		bool frame_advance = false;
 		bool skip_frame = false;
 		bool fullscreen = false;
+		bool debug = true;
+		bool show_debug = false;
 
 	private:
 		static Game* _instance;
@@ -84,9 +86,14 @@ namespace th {
 		SDL_Texture* up_surface = nullptr;
 
 		int next_scene = 0;
+		int window_mode = 0;
 
 		double fps = 0.0;
-		int window_mode = 0;
+		double update_took = 0.0;
+		double draw_took = 0.0;
+		double everything_took = 0.0;
+		double frame_took = 0.0;
+		double everything_start_t = 0.0;
 	};
 
 	enum {

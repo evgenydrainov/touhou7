@@ -100,12 +100,13 @@
       <AdditionalIncludeDirectories>$(ProjectDir);C:\vclib\lua54\lua54\src\;C:\vclib\SDL-release-2.26.4\include\;C:\vclib\SDL_image-release-2.6.3\include\;C:\vclib\SDL_mixer-release-2.6.3\include;C:\vclib\SDL_ttf-release-2.20.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseFullPaths>false</UseFullPaths>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\vclib\lua54\out\$(Configuration)\$(Platform)\;C:\vclib\SDL-release-2.26.4\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_image-release-2.6.3\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_mixer-release-2.6.3\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_ttf-release-2.20.2\VisualC\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>lua54.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;Winmm.lib;Setupapi.lib;Version.lib;Imm32.lib;Opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua54.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;Winmm.lib;Setupapi.lib;Version.lib;Imm32.lib;Opengl32.lib;Glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -120,6 +121,8 @@
       <AdditionalIncludeDirectories>$(ProjectDir);C:\vclib\lua54\lua54\src\;C:\vclib\SDL-release-2.26.4\include\;C:\vclib\SDL_image-release-2.6.3\include\;C:\vclib\SDL_mixer-release-2.6.3\include;C:\vclib\SDL_ttf-release-2.20.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <UseFullPaths>false</UseFullPaths>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -127,7 +130,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\vclib\lua54\out\$(Configuration)\$(Platform)\;C:\vclib\SDL-release-2.26.4\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_image-release-2.6.3\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_mixer-release-2.6.3\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_ttf-release-2.20.2\VisualC\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>lua54.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;Winmm.lib;Setupapi.lib;Version.lib;Imm32.lib;Opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua54.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;Winmm.lib;Setupapi.lib;Version.lib;Imm32.lib;Opengl32.lib;Glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -140,12 +143,13 @@
       <AdditionalIncludeDirectories>$(ProjectDir);C:\vclib\lua54\lua54\src\;C:\vclib\SDL-release-2.26.4\include\;C:\vclib\SDL_image-release-2.6.3\include\;C:\vclib\SDL_mixer-release-2.6.3\include;C:\vclib\SDL_ttf-release-2.20.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseFullPaths>false</UseFullPaths>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\vclib\lua54\out\$(Configuration)\$(Platform)\;C:\vclib\SDL-release-2.26.4\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_image-release-2.6.3\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_mixer-release-2.6.3\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_ttf-release-2.20.2\VisualC\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>lua54.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;Winmm.lib;Setupapi.lib;Version.lib;Imm32.lib;Opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua54.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;Winmm.lib;Setupapi.lib;Version.lib;Imm32.lib;Opengl32.lib;Glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -160,6 +164,8 @@
       <AdditionalIncludeDirectories>$(ProjectDir);C:\vclib\lua54\lua54\src\;C:\vclib\SDL-release-2.26.4\include\;C:\vclib\SDL_image-release-2.6.3\include\;C:\vclib\SDL_mixer-release-2.6.3\include;C:\vclib\SDL_ttf-release-2.20.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <UseFullPaths>false</UseFullPaths>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -167,7 +173,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\vclib\lua54\out\$(Configuration)\$(Platform)\;C:\vclib\SDL-release-2.26.4\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_image-release-2.6.3\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_mixer-release-2.6.3\VisualC\$(Platform)\$(Configuration)\;C:\vclib\SDL_ttf-release-2.20.2\VisualC\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>lua54.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;Winmm.lib;Setupapi.lib;Version.lib;Imm32.lib;Opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua54.lib;SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;Winmm.lib;Setupapi.lib;Version.lib;Imm32.lib;Opengl32.lib;Glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -181,6 +187,7 @@
     <ClCompile Include="src\single_header.cpp" />
     <ClCompile Include="src\Stage.cpp" />
     <ClCompile Include="src\stage1bg_mode7.cpp" />
+    <ClCompile Include="src\stage1bg_opengl.cpp" />
     <ClCompile Include="src\stage1bg_simple.cpp" />
     <ClCompile Include="src\TitleScene.cpp" />
   </ItemGroup>

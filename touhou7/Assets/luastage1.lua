@@ -93,7 +93,7 @@ function Stage1_Script(id)
 	-- midboss part
 ::L_Midboss::
 	do
-		local dai = CreateBoss{type=BOSS_DAIYOUSEI};
+		local dai = CreateBoss{type=MIDBOSS_DAIYOUSEI};
 		while (Exists(dai)) do wait(1); end
 
 		wait(60);

@@ -45,17 +45,30 @@ namespace th {
 
 	void GameScene::Quit() {
 		stage->Quit();
+
+		SDL_DestroyTexture(play_area_surface);
 	}
 
 	void GameScene::Update(float delta) {
-		if (!paused) {
+		if (game.key_pressed[SDL_SCANCODE_ESCAPE] || game.key_pressed[SDL_SCANCODE_RETURN]) {
+			paused ^= true;
+		}
+
+		if (paused) {
+			if (game.key_pressed[SDL_SCANCODE_X]) {
+				game.GoToScene(TITLE_SCENE);
+			}
+			if (game.key_pressed[SDL_SCANCODE_Z]) {
+				paused = false;
+			}
+		} else {
 			if (!game.skip_frame) {
 				stage->Update(delta);
 			}
 		}
 
-		if (game.key_pressed[SDL_SCANCODE_ESCAPE]) {
-			paused ^= true;
+		if (game.debug) {
+			if (game.key_pressed[SDL_SCANCODE_P]) GetPower(8);
 		}
 	}
 
@@ -66,7 +79,9 @@ namespace th {
 	}
 
 	void GameScene::Draw(SDL_Renderer* renderer, SDL_Texture* target, float delta) {
-		stage->Draw(renderer, play_area_surface, delta);
+		if (!paused) {
+			stage->Draw(renderer, play_area_surface, delta);
+		}
 
 		SDL_SetRenderTarget(renderer, target);
 		{
@@ -116,13 +131,13 @@ namespace th {
 				// hiscore
 				{
 					char buf[10];
-					stbsp_snprintf(buf, 10, "%09d", 0);
+					stbsp_snprintf(buf, sizeof(buf), "%09d", 0);
 					DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y);
 				}
 				// score
 				{
 					char buf[10];
-					stbsp_snprintf(buf, 10, "%09d", stats.score);
+					stbsp_snprintf(buf, sizeof(buf), "%09d", stats.score);
 					DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y + 16);
 				}
 				// lives
@@ -155,21 +170,21 @@ namespace th {
 
 					char buf[4] = "MAX";
 					if (stats.power < MAX_POWER) {
-						stbsp_snprintf(buf, 4, "%d", stats.power);
+						stbsp_snprintf(buf, sizeof(buf), "%d", stats.power);
 					}
 					DrawTextBitmap(renderer, game.assets.fntMain, buf, rect.x, rect.y);
 				}
 				// graze
 				{
 					char buf[10];
-					stbsp_snprintf(buf, 10, "%d", stats.graze);
+					stbsp_snprintf(buf, sizeof(buf), "%d", stats.graze);
 					DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y + 7 * 16);
 				}
 				// points
 				{
 					char buf[10];
 					int next = GetNextPointLevel(stats.points);
-					stbsp_snprintf(buf, 10, "%d/%d", stats.points, next);
+					stbsp_snprintf(buf, sizeof(buf), "%d/%d", stats.points, next);
 					DrawTextBitmap(renderer, game.assets.fntMain, buf, x, y + 8 * 16);
 				}
 			}
@@ -195,19 +210,23 @@ namespace th {
 			}
 
 			// DEBUG
-			{
-				char buf[100];
+			if (game.show_debug) {
+				char buf[200];
 				stbsp_snprintf(
 					buf,
-					100,
+					sizeof(buf),
 					"Next ID %d\n"
-					"Lua Mem %f\n"
-					"Bullets %d\n"
-					"Enemies %d",
+					"Lua Mem %fKb\n"
+					"Bullets %d (cap %d)\n"
+					"Enemies %d (cap %d)\n"
+					"Pickups %d (cap %d)\n"
+					"PlBullets %d (cap %d)",
 					stage->next_id,
 					(double)(lua_gc(stage->L, LUA_GCCOUNT) * 1024 + lua_gc(stage->L, LUA_GCCOUNTB)) / 1024.0,
-					(int)stage->bullets.size(),
-					(int)stage->enemies.size()
+					(int)stage->bullets.size(), (int)stage->bullets.capacity(),
+					(int)stage->enemies.size(), (int)stage->enemies.capacity(),
+					(int)stage->pickups.size(), (int)stage->pickups.capacity(),
+					(int)stage->player_bullets.size(), (int)stage->player_bullets.capacity()
 				);
 				int x = PLAY_AREA_X + PLAY_AREA_W + 16;
 				int y = PLAY_AREA_Y + 11 * 16;
@@ -221,7 +240,7 @@ namespace th {
 					SDL_RenderCopy(renderer, texture, nullptr, &dest);
 				}
 				{
-					SDL_SetTextureColorMod(texture, 255, 255, 255);
+					SDL_SetTextureColorMod(texture, 255, 64, 64);
 					SDL_Rect dest{x, y, surface->w, surface->h};
 					SDL_RenderCopy(renderer, texture, nullptr, &dest);
 				}

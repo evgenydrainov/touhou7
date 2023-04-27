@@ -79,28 +79,28 @@ namespace th {
 		int text_y = y;
 
 		for (const char* ch = text; *ch; ch++) {
-			switch (*ch) {
-				default: {
-					int frame_index = *ch - font->first;
-					SDL_Rect src;
-					src.x = (frame_index % font->frames_in_row) * font->sep_x;
-					src.y = (frame_index / font->frames_in_row) * font->sep_y;
-					src.w = font->width;
-					src.h = font->height;
-					SDL_Rect dest;
-					dest.x = text_x;
-					dest.y = text_y;
-					dest.w = font->width;
-					dest.h = font->height;
-					SDL_RenderCopy(renderer, font->texture, &src, &dest);
-				}
-				case ' ':
-					text_x += font->width;
-					break;
-				case '\n':
-					text_x = x;
-					text_y += font->height;
+			if (*ch == '\n') {
+				text_x = x;
+				text_y += font->height;
+				continue;
 			}
+
+			if (*ch != ' ') {
+				int frame_index = *ch - font->first;
+				SDL_Rect src;
+				src.x = (frame_index % font->frames_in_row) * font->sep_x;
+				src.y = (frame_index / font->frames_in_row) * font->sep_y;
+				src.w = font->width;
+				src.h = font->height;
+				SDL_Rect dest;
+				dest.x = text_x;
+				dest.y = text_y;
+				dest.w = font->width;
+				dest.h = font->height;
+				SDL_RenderCopy(renderer, font->texture, &src, &dest);
+			}
+
+			text_x += font->width;
 		}
 	}
 

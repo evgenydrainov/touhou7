@@ -67,8 +67,117 @@ end
 
 function Rumia_Nonspell2(id)
 	while true do
-		SLazer{GetX(id), GetY(id), TargetDir(id), seconds(1), seconds(1), 10, 2}
+		Wander(id)
 
-		wait(seconds(4))
+		wait(10)
+
+		Radial(8, 0, function(j)
+			return Radial(2, 5, function()
+				return Shoot{GetX(id), GetY(id), lerp(1.75, 3.25, j/7), TargetDir(id), 0, BULLET_OUTLINE, 10}
+			end)
+		end)
+
+		for i = 1, 6 do
+			SLazer{GetX(id), GetY(id), TargetDir(id), seconds(2), seconds(1), 10, 8}
+
+			wait(10)
+		end
+
+		wait(seconds(2.5))
+
+		Wander(id)
+
+		for i = 0, 32 do
+			local spd = lerp(0.5, 4, i/32)
+			if i%2==0 then spd = spd*1.1 end
+			Shoot{GetX(id), GetY(id), spd, lerp(0, -225, i/32), 0, BULLET_OUTLINE, 10}
+			wait(1)
+		end
+
+		wait(seconds(1))
+
+		Wander(id)
+
+		wait(seconds(1))
+
+		for i = 0, 2 do
+			Radial(8, lerp(10, 20, i/2), function()
+				return Shoot{GetX(id), GetY(id), 3.25, TargetDir(id), 0, BULLET_RICE, 13}
+			end)
+
+			Radial(9, lerp(10, 20, i/2), function()
+				return Shoot{GetX(id), GetY(id), 2, TargetDir(id), 0, BULLET_RICE, 13}
+			end)
+
+			wait(40)
+		end
+
+		wait(seconds(1))
+
+		Wander(id)
+
+		wait(seconds(1))
+
+		Radial(39, 360/39, function() return Shoot{GetX(id), GetY(id), 2, 0, 0, BULLET_RICE, 0} end)
+		wait(40)
+		Radial(38, 360/38, function() return Shoot{GetX(id), GetY(id), 4, 0, 0, BULLET_SMALL, 0} end)
+		wait(40)
+		Radial(39, 360/39, function() return Shoot{GetX(id), GetY(id), 2, 0, 0, BULLET_RICE, 0} end)
+		wait(40)
+
+		wait(120)
+	end
+end
+
+function Rumia_Demarcation(id)
+	local function f(color)
+		Radial(20, 360/20, function()
+			return Shoot{GetX(id), GetY(id), 4, 0, -0.08, BULLET_RICE, color, function(id)
+				while GetSpd(id)>0 do wait(1) end
+				SetDir(id, GetDir(id) + 90)
+				SetSpd(id, 2)
+				SetAcc(id, 0)
+			end}
+		end)
+
+		Radial(20, 360/20, function()
+			return Shoot{GetX(id), GetY(id), 4, 10, -0.08, BULLET_RICE, color, function(id)
+				while GetSpd(id)>0 do wait(1) end
+				SetDir(id, GetDir(id) - 90)
+				SetSpd(id, 2)
+				SetAcc(id, 0)
+			end}
+		end)
+	end
+
+	while true do
+		f(6)
+		wait(seconds(1))
+
+		f(10)
+		wait(seconds(1))
+
+		f(2)
+		wait(seconds(1))
+
+		Wander(id)
+		wait(10)
+
+		for i = 1, 4 do
+			Radial(3, 0, function(j)
+				wait(5)
+				return Radial(10+j, 10, function()
+					return Shoot{GetX(id), GetY(id), lerp(5, 5.5, j/2), TargetDir(id), -0.2, BULLET_OUTLINE, 6, function(id)
+						wait(30)
+						SetSpd(id, 4)
+						SetDir(id, TargetDir(id))
+						SetAcc(id, 0)
+					end}
+				end)
+			end)
+			wait(10)
+		end
+
+		wait(seconds(1))
 	end
 end

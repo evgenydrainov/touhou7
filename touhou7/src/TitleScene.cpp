@@ -44,7 +44,7 @@ namespace th {
 			DrawTextBitmap(renderer, game.assets.fntMain, game.skip_to_boss ? "Do skip to boss" : "Don't skip to boss", 16, 48);
 			{
 				char buf[20];
-				stbsp_snprintf(buf, 20, "Stage %d", game.stage_index);
+				stbsp_snprintf(buf, sizeof(buf), "Stage %d", game.stage_index);
 				DrawTextBitmap(renderer, game.assets.fntMain, buf, 16, 64);
 			}
 		}

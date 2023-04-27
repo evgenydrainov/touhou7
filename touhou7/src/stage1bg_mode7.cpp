@@ -1,4 +1,4 @@
-#if 1
+#if 0
 
 #include "Game.h"
 
@@ -6,7 +6,7 @@
 
 #include <SDL_image.h>
 
-#define RES 2
+#define RES 1
 
 #define BG_SURF_W (384/RES)
 #define BG_SURF_H (448/RES)

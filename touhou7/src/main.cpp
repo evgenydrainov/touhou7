@@ -18,9 +18,14 @@ static void SpawnConsole() {
 }
 #endif
 
+//void* operator new(size_t size) {
+//	printf("alloc ");
+//	return malloc(size);
+//}
+
 extern "C" int main(int argc, char* argv[]) {
 #ifdef TH_RELEASE
-	if (argc > 1) {
+	if (argc == 2) {
 		if (strcmp(argv[1], "--console") == 0) {
 			SpawnConsole();
 		}

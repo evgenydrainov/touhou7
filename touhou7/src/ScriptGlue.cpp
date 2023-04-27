@@ -165,28 +165,29 @@ namespace th {
 	static int lua_CreateEnemy(lua_State* L) {
 		int argc = lua_getargc(L);
 
-		float x   = lua_named_argf(L, argc, 1, "x", (float)PLAY_AREA_W / 2.0f);
-		float y   = lua_named_argf(L, argc, 2, "y", 0.0f);
-		float spd = lua_named_argf(L, argc, 3, "spd");
-		float dir = lua_named_argf(L, argc, 4, "dir");
-		float acc = lua_named_argf(L, argc, 5, "acc");
-		void* spr = lua_named_argp(L, argc, 6, "spr");
-		int drops = lua_named_argi(L, argc, 7, "drops");
+		int i = 1;
+		float x   = lua_named_argf(L, argc, i++, "x", (float)PLAY_AREA_W / 2.0f);
+		float y   = lua_named_argf(L, argc, i++, "y", 0.0f);
+		float spd = lua_named_argf(L, argc, i++, "spd");
+		float dir = lua_named_argf(L, argc, i++, "dir");
+		float acc = lua_named_argf(L, argc, i++, "acc");
+		void* spr = lua_named_argp(L, argc, i++, "spr");
+		int drops = lua_named_argi(L, argc, i++, "drops");
 
 		Game* ctx = lua_getcontext(L);
 
 		int coroutine = LUA_REFNIL;
-		if (lua_named_argfunc(L, argc, 8, "Script")) {
+		if (lua_named_argfunc(L, argc, i++, "Script")) {
 			coroutine = CreateCoroutine(L, ctx->game_scene->stage->L); // @main_thread
 		}
 
 		int death_callback = LUA_REFNIL;
-		if (lua_named_argfunc(L, argc, 9, "OnDeath")) {
+		if (lua_named_argfunc(L, argc, i++, "OnDeath")) {
 			death_callback = luaL_ref(L, LUA_REGISTRYINDEX);
 		}
 
 		int update_callback = LUA_REFNIL;
-		if (lua_named_argfunc(L, argc, 10, "OnUpdate")) {
+		if (lua_named_argfunc(L, argc, i++, "OnUpdate")) {
 			update_callback = luaL_ref(L, LUA_REGISTRYINDEX);
 		}
 
@@ -210,12 +211,13 @@ namespace th {
 	static int lua_CreateBoss(lua_State* L) {
 		int argc = lua_getargc(L);
 
-		float x   = lua_named_argf(L, argc, 1, "x", BOSS_STARTING_X);
-		float y   = lua_named_argf(L, argc, 2, "y", BOSS_STARTING_Y);
-		float spd = lua_named_argf(L, argc, 3, "spd");
-		float dir = lua_named_argf(L, argc, 4, "dir");
-		float acc = lua_named_argf(L, argc, 5, "acc");
-		int type  = lua_named_argi(L, argc, 6, "type");
+		int i = 1;
+		float x   = lua_named_argf(L, argc, i++, "x", BOSS_STARTING_X);
+		float y   = lua_named_argf(L, argc, i++, "y", BOSS_STARTING_Y);
+		float spd = lua_named_argf(L, argc, i++, "spd");
+		float dir = lua_named_argf(L, argc, i++, "dir");
+		float acc = lua_named_argf(L, argc, i++, "acc");
+		int type  = lua_named_argi(L, argc, i++, "type");
 
 		Game* ctx = lua_getcontext(L);
 
@@ -240,18 +242,19 @@ namespace th {
 	static int lua_Shoot(lua_State* L) {
 		int argc = lua_getargc(L);
 
-		float x   = lua_named_argf(L, argc, 1, "x");
-		float y   = lua_named_argf(L, argc, 2, "y");
-		float spd = lua_named_argf(L, argc, 3, "spd");
-		float dir = lua_named_argf(L, argc, 4, "dir");
-		float acc = lua_named_argf(L, argc, 5, "acc");
-		int type  = lua_named_argi(L, argc, 6, "type");
-		int color = lua_named_argi(L, argc, 7, "color");
+		int i = 1;
+		float x   = lua_named_argf(L, argc, i++, "x");
+		float y   = lua_named_argf(L, argc, i++, "y");
+		float spd = lua_named_argf(L, argc, i++, "spd");
+		float dir = lua_named_argf(L, argc, i++, "dir");
+		float acc = lua_named_argf(L, argc, i++, "acc");
+		int type  = lua_named_argi(L, argc, i++, "type");
+		int color = lua_named_argi(L, argc, i++, "color");
 
 		Game* ctx = lua_getcontext(L);
 
 		int coroutine = LUA_REFNIL;
-		if (lua_named_argfunc(L, argc, 8, "Script")) {
+		if (lua_named_argfunc(L, argc, i++, "Script")) {
 			coroutine = CreateCoroutine(L, ctx->game_scene->stage->L); // @main_thread
 		}
 
@@ -283,18 +286,19 @@ namespace th {
 	static int lua_ShootLazer(lua_State* L) {
 		int argc = lua_getargc(L);
 
-		float x   = lua_named_argf(L, argc, 1, "x");
-		float y   = lua_named_argf(L, argc, 2, "y");
-		float spd = lua_named_argf(L, argc, 3, "spd");
-		float dir = lua_named_argf(L, argc, 4, "dir");
-		float length = lua_named_argf(L, argc, 5, "length");
-		float thickness = lua_named_argf(L, argc, 6, "thickness");
-		int color = lua_named_argi(L, argc, 7, "color");
+		int i = 1;
+		float x   = lua_named_argf(L, argc, i++, "x");
+		float y   = lua_named_argf(L, argc, i++, "y");
+		float spd = lua_named_argf(L, argc, i++, "spd");
+		float dir = lua_named_argf(L, argc, i++, "dir");
+		float length = lua_named_argf(L, argc, i++, "length");
+		float thickness = lua_named_argf(L, argc, i++, "thickness");
+		int color = lua_named_argi(L, argc, i++, "color");
 
 		Game* ctx = lua_getcontext(L);
 
 		int coroutine = LUA_REFNIL;
-		if (lua_named_argfunc(L, argc, 8, "Script")) {
+		if (lua_named_argfunc(L, argc, i++, "Script")) {
 			coroutine = CreateCoroutine(L, ctx->game_scene->stage->L); // @main_thread
 		}
 
@@ -332,8 +336,8 @@ namespace th {
 		float x   = lua_named_argf(L, argc, i++, "x");
 		float y   = lua_named_argf(L, argc, i++, "y");
 		float dir = lua_named_argf(L, argc, i++, "dir");
-		float prep_time = lua_named_argf(L, argc, i++, "prep_time");
-		float time = lua_named_argf(L, argc, i++, "time");
+		float prep_time = lua_named_argf(L, argc, i++, "wait_time");
+		float time = lua_named_argf(L, argc, i++, "lifespan");
 		float thickness = lua_named_argf(L, argc, i++, "thickness");
 		int color = lua_named_argi(L, argc, i++, "color");
 
@@ -365,6 +369,9 @@ namespace th {
 
 	static int lua_FindSprite(lua_State* L) {
 		lua_checkargc(L, 1, 1);
+		//size_t size;
+		//const char* name = luaL_checklstring(L, 1, &size);
+		//std::string_view s(name, size);
 		const char* name = luaL_checkstring(L, 1);
 		Game* ctx = lua_getcontext(L);
 		SpriteData* result = ctx->assets.GetSprite(name);
@@ -380,8 +387,7 @@ namespace th {
 		T (*GetFromPlayer)(Player* player),
 		T (*GetFromBoss)(Boss* boss),
 		T (*GetFromStage)(void*) = nullptr
-	>
-		static int lua_GetObjectVar(lua_State* L) {
+	> static int lua_GetObjectVar(lua_State* L) {
 		lua_checkargc(L, 1, 1);
 		instance_id id = (instance_id)luaL_checkinteger(L, 1);
 		unsigned char type = id >> TYPE_PART_SHIFT;
@@ -429,8 +435,7 @@ namespace th {
 		void (*EnemySet)(Enemy* enemy, T value),
 		void (*PlayerSet)(Player* player, T value),
 		void (*BossSet)(Boss* boss, T value)
-	>
-		static int lua_SetObjectVar(lua_State* L) {
+	> static int lua_SetObjectVar(lua_State* L) {
 		lua_checkargc(L, 2, 2);
 		instance_id id = (instance_id)luaL_checkinteger(L, 1);
 		T value = ToFunc(L, 2);
@@ -593,10 +598,39 @@ namespace th {
 	template <typename Object>
 	static void SetAngleForObject(Object* object, float value) { object->angle = value; }
 
+#if 0
+	static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
+		if (nsize == 0) {
+			//printf("lua free %d bytes\n", (int)osize);
+			printf("FREE ");
+			free(ptr);
+			return NULL;
+		} else if (ptr == nullptr) {
+			const char* s = "something else";
+			switch (osize) {
+				case LUA_TSTRING:   s = "string";   break;
+				case LUA_TTABLE:    s = "table";    break;
+				case LUA_TFUNCTION: s = "function"; break;
+				case LUA_TUSERDATA: s = "userdata"; break;
+				case LUA_TTHREAD:   s = "thread";   break;
+			}
+			//printf("lua alloc %d bytes (%s)\n", (int)nsize, s);
+			printf("ALLOC ");
+			return malloc(nsize);
+		} else {
+			//printf("lua realloc from %d bytes to %d bytes\n", (int)osize, (int)nsize);
+			printf("REALLOC ");
+			return realloc(ptr, nsize);
+		}
+	}
+#endif
+
 	void Stage::InitLua() {
 		if (!(L = luaL_newstate())) {
 			TH_SHOW_ERROR("luaL_newstate failed");
 		}
+
+		//lua_setallocf(L, l_alloc, nullptr);
 
 		{
 			lua_pushlightuserdata(L, &game);

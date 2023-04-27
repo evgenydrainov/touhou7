@@ -34,21 +34,18 @@ namespace th {
 		Stage1_Data* data = (Stage1_Data*)mem;
 
 		SDL_Texture* texture = ctx->assets.GetTexture("MistyLakeTexture.png");
-		SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
+		//SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
 
 		{
-			SDL_Rect dest{0, (int)ctx->game_scene->stage->time / 4 % PLAY_AREA_W - PLAY_AREA_W, PLAY_AREA_W, PLAY_AREA_W};
-			SDL_RenderCopy(renderer, texture, nullptr, &dest);
+			SDL_Rect dest{0, (int)ctx->game_scene->stage->time / 4 % (2 * PLAY_AREA_W) - 2 * PLAY_AREA_W, PLAY_AREA_W, 2 * PLAY_AREA_W};
+			SDL_Rect src{0, 0, 128, 256};
+			SDL_RenderCopy(renderer, texture, &src, &dest);
 		}
 
 		{
-			SDL_Rect dest{0, (int)ctx->game_scene->stage->time / 4 % PLAY_AREA_W, PLAY_AREA_W, PLAY_AREA_W};
-			SDL_RenderCopy(renderer, texture, nullptr, &dest);
-		}
-
-		{
-			SDL_Rect dest{0, (int)ctx->game_scene->stage->time / 4 % PLAY_AREA_W + PLAY_AREA_W, PLAY_AREA_W, PLAY_AREA_W};
-			SDL_RenderCopy(renderer, texture, nullptr, &dest);
+			SDL_Rect dest{0, (int)ctx->game_scene->stage->time / 4 % (2 * PLAY_AREA_W), PLAY_AREA_W, 2 * PLAY_AREA_W};
+			SDL_Rect src{0, 0, 128, 256};
+			SDL_RenderCopy(renderer, texture, &src, &dest);
 		}
 	}
 

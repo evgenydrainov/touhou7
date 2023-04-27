@@ -16,7 +16,7 @@ namespace th {
 		InitLua();
 
 		{
-			stage_memory = new unsigned char[100]{};
+			stage_memory = new unsigned char[1000]{};
 
 			StageData* data = GetStageData(game.stage_index);
 
@@ -222,10 +222,6 @@ namespace th {
 		} else {
 			player.hitbox_alpha = cpml::approach(player.hitbox_alpha, 0.0f, 0.1f * delta);
 		}
-
-#ifdef TH_DEBUG
-		if (game.key_pressed[SDL_SCANCODE_P]) scene.GetPower(8);
-#endif
 	}
 
 	void Stage::CallCoroutines() {
@@ -260,7 +256,7 @@ namespace th {
 					pickup.hsp = cpml::lengthdir_x(spd, dir);
 					pickup.vsp = cpml::lengthdir_y(spd, dir);
 
-					if (player.state != PlayerState::Normal) {
+					if (player.state == PlayerState::Dying) {
 						pickup.hsp = 0.0f;
 						pickup.vsp = -1.5f;
 						pickup.homing = false;
@@ -808,7 +804,7 @@ namespace th {
 				StopSound(sound);
 				Mix_PlayChannel(-1, sound, 0);
 
-				ScreenShake(10.0f, 120.0f);
+				ScreenShake(6.0f, 120.0f);
 			} else {
 				Mix_Chunk* sound = game.assets.GetSound("se_enemy_die.wav");
 				StopSound(sound);
@@ -865,19 +861,19 @@ namespace th {
 			}
 		}
 
-#ifdef TH_DEBUG
-		if (game.key_pressed[SDL_SCANCODE_B]) {
-			EndBossPhase();
+		if (game.debug) {
+			if (game.key_pressed[SDL_SCANCODE_B]) {
+				EndBossPhase();
 
-			if (boss_exists) {
-				//if (!IsKeyDown(KEY_LEFT_CONTROL)) {
-					if (boss.state == BossState::WaitingEnd) {
-						boss.wait_timer = 0.0f;
-					}
-				//}
+				if (boss_exists) {
+					//if (!IsKeyDown(KEY_LEFT_CONTROL)) {
+						if (boss.state == BossState::WaitingEnd) {
+							boss.wait_timer = 0.0f;
+						}
+					//}
+				}
 			}
 		}
-#endif
 	}
 
 	template <typename Object>
@@ -1041,7 +1037,7 @@ namespace th {
 					// phases left
 					{
 						//char buf[3];
-						//stbsp_snprintf(buf, 3, "%2d", data->phase_count - boss.phase_index - 1);
+						//stbsp_snprintf(buf, sizeof(buf), "%2d", data->phase_count - boss.phase_index - 1);
 						char buf[2] = {'0' + data->phase_count - boss.phase_index - 1, 0};
 						int x = 8;
 						int y = 0;
@@ -1070,7 +1066,7 @@ namespace th {
 					// timer
 					{
 						char buf[3];
-						stbsp_snprintf(buf, 3, "%d", (int)(boss.timer / 60.0f));
+						stbsp_snprintf(buf, sizeof(buf), "%d", (int)(boss.timer / 60.0f));
 						int x = PLAY_AREA_W - 2 * 15;
 						int y = 0;
 						if ((int)(boss.timer / 60.0f) < 10) x += 8;

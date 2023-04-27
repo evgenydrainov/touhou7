@@ -44,7 +44,7 @@ namespace th {
 			nullptr,
 			BOSS_MIDBOSS,
 			{
-				{1000.0f, 31.0f * 60.0f, PHASE_NONSPELL, "Daiyousei_Nonspell1"}
+				{1500.0f, 31.0f * 60.0f, PHASE_NONSPELL, "Daiyousei_Nonspell1"}
 			}
 		},
 
@@ -64,13 +64,14 @@ namespace th {
 
 		{
 			"Rumia",
-			3,
+			4,
 			nullptr,
 			BOSS_BOSS,
 			{
-				{1000.0f, 30.0f * 60.0f, PHASE_NONSPELL, "Rumia_Nonspell1"},
-				{1000.0f, 30.0f * 60.0f, PHASE_SPELLCARD, "Rumia_NightBird", "Night Sign \"Night Bird\""},
-				{1000.0f, 30.0f * 60.0f, PHASE_NONSPELL, "Rumia_Nonspell2"}
+				{1500.0f, 40.0f * 60.0f, PHASE_NONSPELL, "Rumia_Nonspell1"},
+				{1500.0f, 40.0f * 60.0f, PHASE_SPELLCARD, "Rumia_NightBird", "Night Sign \"Night Bird\""},
+				{1500.0f, 40.0f * 60.0f, PHASE_NONSPELL, "Rumia_Nonspell2"},
+				{1500.0f, 40.0f * 60.0f, PHASE_SPELLCARD, "Rumia_Demarcation", "Darkness Sign \"Demarcation\""}
 			}
 		}
 	};
