@@ -5,6 +5,7 @@ ReimuTurn       Characters.png      0       304     32      48      16      24  
 ReimuCard       Characters.png      128     0       16      16      8       8       1           0               0.00        0
 ReimuOrb        Characters.png      128     16      16      16      8       8       1           0               0.00        0
 ReimuOrbShot    Characters.png      144     0       16      16      8       8       1           0               0.00        0
+
 Hitbox          Projectiles.png     0       368     64      64      32      32      1           0               0.00        0
 Lazer           Projectiles.png     0       0       16      16      8       0       16          0               0.00        0
 Bullet0         Projectiles.png     0       16      16      16      8       8       16          0               0.00        0
@@ -15,6 +16,7 @@ Bullet4         Projectiles.png     0       80      16      16      8       8   
 Bullet5         Projectiles.png     0       96      16      16      8       8       16          0               0.00        0
 Bullet6         Projectiles.png     0       240     8       8       4       4       16          8               0.00        0
 Pickup          Projectiles.png     0       320     16      16      8       8       16          0               0.00        0
+
 CirnoIdle       Enemies.png         560     288     32      64      16      32      1           0               0.00        0
 CirnoGlide      Enemies.png         592     288     48      64      24      32      1           0               0.00        0
 CirnoFlap       Enemies.png         640     288     48      64      24      32      4           0               0.25        0
@@ -22,8 +24,10 @@ Daiyousei       Enemies.png         288     496     48      48      24      24  
 Fairy0          Enemies.png         288     288     32      32      16      16      8           0               0.10        0
 Fairy1          Enemies.png         288     320     32      32      16      16      8           0               0.10        0
 Enemy0          Enemies.png         416     384     32      32      16      16      1           0               0.00        0
+RumiaIdle       Enemies.png         832     16      32      48      16      24      1           0               0.00        0
+
 Sidebar         Sidebar.png         32      704     64      144     0       0       1           0               0.00        0
 UI_Life         Sidebar.png         96      704     16      16      0       0       1           0               0.00        0
 UI_Bomb         Sidebar.png         112     704     16      16      0       0       1           0               0.00        0
+
 EnemyLabel      Fonts.png           16      256     48      16      24      0       1           0               0.00        0
-RumiaIdle       Enemies.png         832     16      32      48      16      24      1           0               0.00        0

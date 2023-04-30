@@ -48,6 +48,8 @@ namespace th {
 
 	bool SoundPlaying(Mix_Chunk* sound);
 
+	void PlaySound(const std::string& name);
+
 	class Assets {
 	public:
 		bool LoadAssets(SDL_Renderer* renderer);

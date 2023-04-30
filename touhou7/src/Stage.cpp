@@ -603,11 +603,7 @@ namespace th {
 					if (player.state == PlayerState::Normal) {
 						if (!bullet->grazed) {
 							scene.GetGraze(1);
-
-							Mix_Chunk* sound = game.assets.GetSound("se_graze.wav");
-							StopSound(sound);
-							Mix_PlayChannel(-1, sound, 0);
-
+							PlaySound("se_graze.wav");
 							bullet->grazed = true;
 						}
 					}
@@ -618,11 +614,7 @@ namespace th {
 						if (player.iframes == 0.0f) {
 							player.state = PlayerState::Dying;
 							player.timer = PLAYER_DEATH_TIME;
-
-							Mix_Chunk* sound = game.assets.GetSound("se_pichuun.wav");
-							StopSound(sound);
-							Mix_PlayChannel(-1, sound, 0);
-
+							PlaySound("se_pichuun.wav");
 							bullets.erase(bullet);
 							break;
 						}
@@ -648,11 +640,7 @@ namespace th {
 							case PICKUP_1UP:        scene.GetLives(1);         break;
 							case PICKUP_SCORE:      scene.GetScore(10);        break;
 						}
-
-						Mix_Chunk* sound = game.assets.GetSound("se_item.wav");
-						StopSound(sound);
-						Mix_PlayChannel(-1, sound, 0);
-
+						PlaySound("se_item.wav");
 						pickup = pickups.erase(pickup);
 						continue;
 					}
@@ -664,10 +652,7 @@ namespace th {
 			if (boss_exists) {
 				for (auto bullet = player_bullets.begin(); bullet != player_bullets.end();) {
 					if (cpml::circle_vs_circle(boss.x, boss.y, boss.radius, bullet->x, bullet->y, bullet->radius)) {
-						Mix_Chunk* sound = game.assets.GetSound("se_enemy_hit.wav");
-						StopSound(sound);
-						Mix_PlayChannel(-1, sound, 0);
-
+						PlaySound("se_enemy_hit.wav");
 						if (boss.state == BossState::Normal) {
 							boss.hp -= bullet->dmg;
 							if (boss.hp <= 0.0f) {
@@ -676,7 +661,6 @@ namespace th {
 								break;
 							}
 						}
-
 						bullet = player_bullets.erase(bullet);
 						continue;
 					}
@@ -692,16 +676,9 @@ namespace th {
 					if (cpml::circle_vs_circle(enemies[i].x, enemies[i].y, enemies[i].radius, bullet->x, bullet->y, bullet->radius)) {
 						enemies[i].hp -= bullet->dmg;
 						bullet = player_bullets.erase(bullet);
-
-						Mix_Chunk* sound = game.assets.GetSound("se_enemy_hit.wav");
-						StopSound(sound);
-						Mix_PlayChannel(-1, sound, 0);
-
+						PlaySound("se_enemy_hit.wav");
 						if (enemies[i].hp <= 0.0f) {
-							Mix_Chunk* sound = game.assets.GetSound("se_enemy_die.wav");
-							StopSound(sound);
-							Mix_PlayChannel(-1, sound, 0);
-
+							PlaySound("se_enemy_die.wav");
 							enemy_dead = true;
 							break;
 						}
@@ -747,9 +724,7 @@ namespace th {
 		}
 
 		if (phase->type == PHASE_SPELLCARD) {
-			Mix_Chunk* sound = game.assets.GetSound("se_spellcard.wav");
-			StopSound(sound);
-			Mix_PlayChannel(-1, sound, 0);
+			PlaySound("se_spellcard.wav");
 		}
 	}
 
@@ -790,25 +765,17 @@ namespace th {
 				boss.phase_index++;
 				StartBossPhase();
 			}
-
-			Mix_Chunk* sound = game.assets.GetSound("se_enemy_die.wav");
-			StopSound(sound);
-			Mix_PlayChannel(-1, sound, 0);
+			PlaySound("se_enemy_die.wav");
 		} else {
 			for (Pickup& pickup : pickups) {
 				pickup.homing = true;
 			}
 
 			if (data->type == BOSS_BOSS) {
-				Mix_Chunk* sound = game.assets.GetSound("se_boss_die.wav");
-				StopSound(sound);
-				Mix_PlayChannel(-1, sound, 0);
-
+				PlaySound("se_boss_die.wav");
 				ScreenShake(6.0f, 120.0f);
 			} else {
-				Mix_Chunk* sound = game.assets.GetSound("se_enemy_die.wav");
-				StopSound(sound);
-				Mix_PlayChannel(-1, sound, 0);
+				PlaySound("se_enemy_die.wav");
 			}
 
 			FreeBoss();

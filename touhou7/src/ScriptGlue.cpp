@@ -275,10 +275,7 @@ namespace th {
 		bullet.sc.frame_index = (float)color;
 		bullet.coroutine = coroutine;
 
-		Mix_Chunk* sound = ctx->assets.GetSound("se_enemy_shoot.wav");
-		StopSound(sound);
-		Mix_PlayChannel(-1, sound, 0);
-
+		PlaySound("se_enemy_shoot.wav");
 		lua_pushinteger(L, bullet.id);
 		return 1;
 	}
@@ -321,10 +318,7 @@ namespace th {
 		bullet.sc.frame_index = (float)color;
 		bullet.coroutine = coroutine;
 
-		Mix_Chunk* sound = ctx->assets.GetSound("se_lazer.wav");
-		StopSound(sound);
-		Mix_PlayChannel(-1, sound, 0);
-
+		PlaySound("se_lazer.wav");
 		lua_pushinteger(L, bullet.id);
 		return 1;
 	}

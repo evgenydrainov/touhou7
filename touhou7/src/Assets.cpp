@@ -125,6 +125,13 @@ namespace th {
 		return false;
 	}
 
+	void PlaySound(const std::string& name) {
+		Game& game = Game::GetInstance();
+		Mix_Chunk* sound = game.assets.GetSound(name);
+		StopSound(sound);
+		Mix_PlayChannel(-1, sound, 0);
+	}
+
 	template <typename F>
 	static bool ReadTextFile(const std::string& assetsFolder, const std::string& fname, const F& f) {
 		std::ifstream file(assetsFolder + fname);

@@ -33,7 +33,7 @@ namespace th {
 		SDL_CheckError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2) == 0);
 		SDL_CheckError(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1) == 0);
 
-		SDL_CheckErrorMsg(window = SDL_CreateWindow("touhou7", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GAME_W, GAME_H, SDL_WINDOW_SHOWN), "couldn't create the window");
+		SDL_CheckErrorMsg(window = SDL_CreateWindow("touhou7", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GAME_W, GAME_H, 0), "couldn't create the window");
 		SDL_CheckErrorMsg(renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE), "couldn't create the renderer");
 		SDL_CheckErrorMsg(game_surface = SDL_CreateTexture(renderer, TH_SURFACE_FORMAT, SDL_TEXTUREACCESS_TARGET, GAME_W, GAME_H), "couldn't create game surface");
 		SDL_CheckErrorMsg(up_surface = SDL_CreateTexture(renderer, TH_SURFACE_FORMAT, SDL_TEXTUREACCESS_TARGET, GAME_W, GAME_H), "couldn't create up surface");
@@ -60,8 +60,8 @@ namespace th {
 		//SDL_RenderPresent(renderer);
 
 		SDL_CheckErrorMsg(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG, "couldn't initialize SDL_image");
-		SDL_CheckErrorMsg(Mix_Init(MIX_INIT_MP3) & MIX_INIT_MP3, "couldn't initialize SDL_mixer");
 
+		SDL_CheckErrorMsg(Mix_Init(MIX_INIT_MP3) & MIX_INIT_MP3, "couldn't initialize SDL_mixer");
 		SDL_CheckError(Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 2048) == 0);
 		Mix_MasterVolume((int)(0.25f * (float)MIX_MAX_VOLUME));
 
@@ -220,8 +220,8 @@ namespace th {
 				}
 			}
 
-			int s = next_scene;
-			next_scene = 0;
+			SceneIndex s = next_scene;
+			next_scene = (SceneIndex)0;
 
 			random.seed();
 
@@ -240,15 +240,17 @@ namespace th {
 			}
 		}
 
-		static_assert(LAST_SCENE == 3);
-		switch (scene.index()) {
-			case GAME_SCENE: {
-				std::get<GAME_SCENE>(scene).Update(delta);
-				break;
-			}
-			case TITLE_SCENE: {
-				std::get<TITLE_SCENE>(scene).Update(delta);
-				break;
+		if (!skip_frame || scene.index() == GAME_SCENE) {
+			static_assert(LAST_SCENE == 3);
+			switch (scene.index()) {
+				case GAME_SCENE: {
+					std::get<GAME_SCENE>(scene).Update(delta);
+					break;
+				}
+				case TITLE_SCENE: {
+					std::get<TITLE_SCENE>(scene).Update(delta);
+					break;
+				}
 			}
 		}
 
@@ -278,6 +280,7 @@ namespace th {
 			DrawTextBitmap(renderer, assets.fntMain, buf, 30 * 16, 29 * 16);
 		}
 
+		// DEBUG
 		if (show_debug) {
 			char buf[100];
 			stbsp_snprintf(
@@ -304,7 +307,7 @@ namespace th {
 				SDL_RenderCopy(renderer, texture, nullptr, &dest);
 			}
 			{
-				SDL_SetTextureColorMod(texture, 255, 64, 64);
+				SDL_SetTextureColorMod(texture, 255, 128, 128);
 				SDL_Rect dest{x, y, surface->w, surface->h};
 				SDL_RenderCopy(renderer, texture, nullptr, &dest);
 			}

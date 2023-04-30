@@ -174,10 +174,7 @@ namespace th {
 					}
 				}
 
-				Mix_Chunk* sound = ctx->assets.GetSound("se_plst00.wav");
-				StopSound(sound);
-				Mix_PlayChannel(-1, sound, 0);
-
+				PlaySound("se_plst00.wav");
 				player.reimu.fire_queue--;
 			}
 

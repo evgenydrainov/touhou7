@@ -52,14 +52,17 @@ namespace th {
 	void GameScene::Update(float delta) {
 		if (game.key_pressed[SDL_SCANCODE_ESCAPE] || game.key_pressed[SDL_SCANCODE_RETURN]) {
 			paused ^= true;
+			if (paused) PlaySound("se_pause.wav");
 		}
 
 		if (paused) {
 			if (game.key_pressed[SDL_SCANCODE_X]) {
 				game.GoToScene(TITLE_SCENE);
+				PlaySound("se_cancel.wav");
 			}
 			if (game.key_pressed[SDL_SCANCODE_Z]) {
 				paused = false;
+				PlaySound("se_ok.wav");
 			}
 		} else {
 			if (!game.skip_frame) {
@@ -194,10 +197,11 @@ namespace th {
 				SDL_Texture* texture = game.assets.GetTexture("Logo.png");
 				SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
 				SDL_Rect dest;
-				dest.x = PLAY_AREA_X + PLAY_AREA_W + 3 * 16;
-				dest.y = PLAY_AREA_Y + 15 * 16;
-				dest.w = 8 * 16;
-				dest.h = 8 * 16;
+				dest.x = PLAY_AREA_X + PLAY_AREA_W + 1 * 16;
+				dest.y = PLAY_AREA_Y + 12 * 16;
+				dest.w = 12 * 16;
+				dest.h = 12 * 16;
+				//SDL_RenderFillRect(renderer, &dest);
 				SDL_RenderCopy(renderer, texture, nullptr, &dest);
 			}
 
@@ -240,7 +244,7 @@ namespace th {
 					SDL_RenderCopy(renderer, texture, nullptr, &dest);
 				}
 				{
-					SDL_SetTextureColorMod(texture, 255, 64, 64);
+					SDL_SetTextureColorMod(texture, 192, 192, 255);
 					SDL_Rect dest{x, y, surface->w, surface->h};
 					SDL_RenderCopy(renderer, texture, nullptr, &dest);
 				}
@@ -258,10 +262,7 @@ namespace th {
 		while (lives--) {
 			if (stats.lives < 8) {
 				stats.lives++;
-
-				Mix_Chunk* sound = game.assets.GetSound("se_extend.wav");
-				StopSound(sound);
-				Mix_PlayChannel(-1, sound, 0);
+				PlaySound("se_extend.wav");
 			} else {
 				GetBombs(1);
 			}
@@ -289,9 +290,7 @@ namespace th {
 					case 80:
 					case 96:
 					case 128: {
-						Mix_Chunk* sound = game.assets.GetSound("se_powerup.wav");
-						StopSound(sound);
-						Mix_PlayChannel(-1, sound, 0);
+						PlaySound("se_powerup.wav");
 					}
 				}
 			}

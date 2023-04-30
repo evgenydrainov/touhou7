@@ -15,7 +15,7 @@
 
 namespace th {
 
-	enum {
+	enum SceneIndex : size_t {
 		GAME_SCENE = 1,
 		TITLE_SCENE,
 
@@ -39,7 +39,7 @@ namespace th {
 		void Update(float delta);
 		void Draw(float delta);
 
-		void GoToScene(int scene) { next_scene = scene; }
+		void GoToScene(SceneIndex scene) { next_scene = scene; }
 
 		Options options{};
 		SDL_Renderer* renderer = nullptr;
@@ -85,7 +85,7 @@ namespace th {
 		SDL_Texture* game_surface = nullptr;
 		SDL_Texture* up_surface = nullptr;
 
-		int next_scene = 0;
+		SceneIndex next_scene = (SceneIndex)0;
 		int window_mode = 0;
 
 		double fps = 0.0;
